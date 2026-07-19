@@ -187,6 +187,7 @@
   </div>
 
   <nav class="tabs" id="tabs"></nav>
+  <div id="appccExportBar" style="padding:0 16px 10px;"></div>
   <main id="main"></main>
 
   <footer class="note">Los datos se guardan en este dispositivo por ahora. Cuando conectemos la cuenta, se sincronizarán en la nube para todo el equipo.</footer>
@@ -899,6 +900,130 @@ function exportPDFFor(empId){
   doc.save(`horario_${emp?emp.nombre.replace(/\s+/g,'_'):'empleado'}_${MESES[horMonth]}_${horYear}.pdf`);
 }
 
+/* ---- Informe completo APPCC en PDF (por departamentos, para inspección de Sanidad) ---- */
+function exportAppccPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const pageH = 290;
+  let y = 20;
+
+  function checkPage(needed){
+    if(y + needed > pageH){ doc.addPage(); y = 20; }
+  }
+  function coverTitle(){
+    doc.setFont('helvetica','bold'); doc.setFontSize(18);
+    doc.text('Restaurante Begoña', 14, y); y+=8;
+    doc.setFontSize(13); doc.setFont('helvetica','normal');
+    doc.text('Informe de Control APPCC', 14, y); y+=6;
+    doc.setFontSize(10); doc.setTextColor(120);
+    doc.text('Generado el ' + new Date().toLocaleDateString('es-ES'), 14, y);
+    doc.setTextColor(0); y+=12;
+  }
+  function deptHeader(title){
+    checkPage(16);
+    doc.setFillColor(235,225,205);
+    doc.rect(14, y-5, 182, 9, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text(title, 16, y+1);
+    y += 12;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+  }
+  function line(text){
+    checkPage(6);
+    doc.text(text, 14, y);
+    y += 5.5;
+  }
+  function smallNote(text){
+    checkPage(6);
+    doc.setTextColor(120); doc.setFontSize(8.5);
+    doc.text(text, 14, y);
+    doc.setTextColor(0); doc.setFontSize(9.5);
+    y += 5.5;
+  }
+
+  coverTitle();
+
+  // Temperaturas
+  deptHeader(`1. Temperatura de productos recibidos — ${MESES[calMonth]} ${calYear}`);
+  const tRows = appcc.temps[monthKey(calYear,calMonth)] || [];
+  const tFilled = tRows.filter(r => r.producto || r.temp!=null);
+  if(tFilled.length===0){ smallNote('Sin registros este mes.'); }
+  tFilled.forEach(r => line(`Día ${r.dia}: ${r.producto||'-'}  |  ${r.temp!=null?r.temp+' °C':'-'}`));
+  y += 4;
+
+  // Diario
+  deptHeader(`2. Control diario de cocción — ${MESES[calMonth]} ${calYear}`);
+  const dRows = appcc.diario[monthKey(calYear,calMonth)] || [];
+  const dFilled = dRows.filter(r => r.fritura||r.horneado||r.vapor||r.plancha||r.cambioAceite);
+  if(dFilled.length===0){ smallNote('Sin registros este mes.'); }
+  dFilled.forEach(r => {
+    line(`Día ${r.dia}: Fritura ${r.fritura||'-'} | Horneado ${r.horneado||'-'} | Vapor ${r.vapor||'-'} | Plancha ${r.plancha||'-'}${r.cambioAceite?' | Cambio de aceite ✔':''}`);
+  });
+  y += 4;
+
+  // Camaras
+  deptHeader(`3. Temperatura de cámaras — ${MESES[calMonth]} ${calYear}`);
+  const cRows = appcc.camaras[monthKey(calYear,calMonth)] || [];
+  const cFilled = cRows.filter(r => [r.c1,r.c2,r.c3,r.c4,r.c5].some(v=>v!=null));
+  if(cFilled.length===0){ smallNote('Sin registros este mes.'); }
+  cFilled.forEach(r => line(`Día ${r.dia}: C1 ${r.c1??'-'} | C2 ${r.c2??'-'} | C3 ${r.c3??'-'} | C4 ${r.c4??'-'} | C5 ${r.c5??'-'}`));
+  y += 4;
+
+  // Limpieza
+  deptHeader('4. Control de limpieza');
+  [['elementos','Elementos / Utillaje'],['maquinaria','Maquinaria'],['instalaciones','Instalaciones']].forEach(([key,label])=>{
+    checkPage(8);
+    doc.setFont('helvetica','bold'); doc.text(label, 14, y); y+=5.5;
+    doc.setFont('helvetica','normal');
+    appcc.limpieza[key].forEach(it => {
+      const doneMonths = MESES.filter((m,i)=>it.months[i]).map(m=>m.slice(0,3));
+      line(`${it.name}${it.freq?' ('+it.freq+')':''}: ${doneMonths.length ? doneMonths.join(', ') : 'sin marcar'}`);
+    });
+    y += 3;
+  });
+
+  // Anual
+  deptHeader('5. Control anual');
+  appcc.anual.bloques.forEach(b => {
+    checkPage(8);
+    doc.setFont('helvetica','bold'); doc.text(b.name, 14, y); y+=5.5;
+    doc.setFont('helvetica','normal');
+    b.items.forEach(it => line(`- [${it.status==='listo'?'Listo':'En progreso'}] ${it.text}`));
+    y += 3;
+  });
+  checkPage(8);
+  doc.setFont('helvetica','bold'); doc.text('Incidencias', 14, y); y+=5.5;
+  doc.setFont('helvetica','normal');
+  if(appcc.anual.incidencias.length===0){ smallNote('Sin incidencias registradas.'); }
+  appcc.anual.incidencias.forEach(inc => line(`${inc.fecha}: ${inc.texto}`));
+  y += 4;
+
+  // Manipuladores
+  deptHeader('6. Manipuladores de alimentos');
+  appcc.manip.forEach(p => line(`${p.nombre}: ${p.pdfData ? 'Carnet subido ('+ (p.pdfName||'PDF') +')' : 'Sin carnet subido'}`));
+  y += 4;
+
+  // Proveedores
+  deptHeader('7. Proveedores');
+  appcc.prov.forEach(p => {
+    const vehTxt = p.vehiculo==='muybueno'?'Muy bueno':p.vehiculo==='bueno'?'Bueno':'Malo';
+    checkPage(12);
+    doc.setFont('helvetica','bold'); doc.text(p.nombre, 14, y); y+=5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    line(`${p.direccion||'-'} | Contacto: ${p.contacto||'-'} | Tel: ${p.telefono||'-'} | Vehículo: ${vehTxt}`);
+    if(p.productos.length) line(`Productos: ${p.productos.join(', ')}`);
+    doc.setFontSize(9.5);
+    y += 2;
+  });
+
+  doc.save(`APPCC_Restaurante_Begona_${MESES[calMonth]}_${calYear}.pdf`);
+}
+function renderExportBar(){
+  const bar = document.getElementById('appccExportBar');
+  if(currentApp!=='appcc'){ bar.innerHTML=''; return; }
+  bar.innerHTML = `<button class="btn btn-add" onclick="exportAppccPDF()">📄 Exportar informe completo (PDF)</button>`;
+}
+
 /* ================= Render dispatcher ================= */
 function renderTabs(){
   const nav = document.getElementById('tabs');
@@ -912,6 +1037,7 @@ function renderTabs(){
 }
 function renderAll(){
   renderTabs();
+  renderExportBar();
   const main = document.getElementById('main');
   if(currentApp==='appcc'){
     const renderers = { temps:renderTemps, diario:renderDiario, camaras:renderCamaras, limpieza:renderLimpieza, anual:renderAnual, manip:renderManip, prov:renderProv };
