@@ -298,15 +298,15 @@ function setApp(app){
 
 /* ================= APPCC state ================= */
 const APPCC_TABS = [
+  {id:'camaras',  label:'Cámaras',      icon:'❄️', color:'sky'},
   {id:'temps',    label:'Temperaturas', icon:'🌡️', color:'peach'},
   {id:'diario',   label:'Diario',       icon:'🍳', color:'butter'},
-  {id:'camaras',  label:'Cámaras',      icon:'❄️', color:'sky'},
   {id:'limpieza', label:'Limpieza',     icon:'🧽', color:'sage'},
   {id:'anual',    label:'Control anual',icon:'📋', color:'rose'},
   {id:'manip',    label:'Manipuladores',icon:'🪪', color:'lavender'},
   {id:'prov',     label:'Proveedores',  icon:'🚚', color:'clay'},
 ];
-let activeAppccTab = 'temps';
+let activeAppccTab = 'camaras';
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 
