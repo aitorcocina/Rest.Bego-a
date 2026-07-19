@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Restaurante Begoña · Control interno</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --cream:#FBF7F1; --card:#FFFFFF; --ink:#3E3A34; --muted:#8B8579; --border:#EAE3D5;
+    --peach:#F2C4A6;    --peach-light:#FBEBDE;
+    --butter:#EFD98C;   --butter-light:#FBF3D8;
+    --sky:#A7C6DC;      --sky-light:#E7F1F7;
+    --sage:#9BBB93;     --sage-light:#E4EFDE;
+    --rose:#DCA3AA;     --rose-light:#F7E7E9;
+    --lavender:#C6B4D8; --lavender-light:#EEE6F3;
+    --clay:#D6A276;     --clay-light:#F5E9DB;
+    --good:#8FB89A; --warn:#E0A96D; --bad:#D68585;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--cream); color:var(--ink); font-family:'Inter',sans-serif; -webkit-tap-highlight-color:transparent; padding-bottom:40px;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:600; margin:0;}
+
+  .app-shell{max-width:1000px; margin:0 auto;}
+
+  header.top{padding:26px 18px 16px; text-align:center;}
+  header.top .eyebrow{font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); font-weight:700; font-family:'Fraunces',serif;}
+  header.top h1{font-size:22px; color:var(--muted); font-weight:500;}
+  header.top .sub{font-size:13px; color:var(--muted); margin-top:4px;}
+
+  .app-switch{display:flex; gap:8px; padding:0 16px 16px; max-width:420px; margin:0 auto;}
+  .app-switch button{
+    flex:1; border:none; border-radius:12px; padding:10px 8px; cursor:pointer;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:12.5px; color:var(--ink);
+    background:var(--card); border:1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .app-switch button .ic{font-size:16px;}
+  .app-switch button.active.appcc{background:var(--sage); border-color:transparent;}
+  .app-switch button.active.horario{background:var(--sky); border-color:transparent;}
+
+  nav.tabs{display:flex; overflow-x:auto; gap:8px; padding:6px 16px 14px; scrollbar-width:none;}
+  nav.tabs::-webkit-scrollbar{display:none;}
+  nav.tabs button{
+    flex:0 0 auto; border:1px solid var(--border); background:var(--card); color:var(--ink);
+    padding:9px 14px; border-radius:999px; font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600;
+    display:flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap;
+  }
+  nav.tabs button.active{ border-color:transparent; }
+  nav.tabs button:active{ transform:scale(.96); }
+
+  main{padding:4px 16px 30px;}
+
+  .section-head{display:flex; align-items:center; justify-content:space-between; margin:18px 0 10px;}
+  .section-head h2{font-size:19px;}
+  .section-head .accent-bar{display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:8px;}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(62,58,52,.04);}
+
+  .btn{border:none; border-radius:12px; padding:10px 16px; font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;}
+  .btn:active{transform:scale(.97);}
+  .btn-add{background:var(--ink); color:#FFF9EF;}
+  .btn-ghost{background:transparent; color:var(--muted); border:1px solid var(--border);}
+  .btn-sm{padding:6px 10px; font-size:12.5px; border-radius:9px;}
+  .btn-danger{background:var(--rose-light); color:#8A4650;}
+  .btn-del{background:var(--rose-light); color:#8A4650; border:none; width:34px;height:34px;border-radius:10px; font-size:15px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+
+  input[type=text], input[type=date], input[type=number], input[type=tel], select{
+    font-family:'Inter',sans-serif; border:1px solid var(--border); background:#FFFDF9; border-radius:9px;
+    padding:8px 10px; font-size:14px; color:var(--ink); width:100%;
+  }
+  input:focus, select:focus{outline:2px solid var(--sky); outline-offset:1px;}
+  label.field-label{font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:3px;}
+
+  .row-grid{display:grid; gap:8px; margin-bottom:8px; align-items:end;}
+  .empty-hint{text-align:center; color:var(--muted); font-size:13.5px; padding:22px 10px; border:1.5px dashed var(--border); border-radius:14px;}
+
+  /* Month nav (compartido) */
+  .month-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:8px;}
+  .month-nav button{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600; cursor:pointer; flex:0 0 auto;}
+  .month-nav .label{text-align:center;}
+  .month-nav .label h2{font-size:19px;}
+
+  .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--border); border-radius:14px;}
+  table.cal{width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card);}
+  table.cal th{background:var(--sky-light); color:#2c5570; font-weight:700; padding:7px 4px; font-size:10.5px; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap; position:sticky; top:0;}
+  table.cal td{padding:5px 3px; text-align:center; border-bottom:1px solid var(--border);}
+  table.cal input, table.cal select{width:100%; min-width:58px; padding:5px 3px; font-size:12px; text-align:center; border:1px solid var(--border); border-radius:6px;}
+  table.cal select{min-width:66px;}
+  table.cal td.dia{font-weight:700; min-width:30px;}
+  table.cal td.total{font-weight:700; background:var(--peach-light); border-radius:6px;}
+
+  /* Limpieza */
+  .limpieza-cat{margin-bottom:22px;}
+  .item-row{background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:8px; overflow:hidden;}
+  .item-head{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; cursor:pointer;}
+  .item-head .left{display:flex; flex-direction:column; gap:2px;}
+  .item-head .name{font-weight:700; font-size:14.5px;}
+  .item-head .freq{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
+  .item-head .chev{color:var(--muted); font-size:12px;}
+  .months{display:none; grid-template-columns:repeat(3,1fr); gap:8px; padding:0 14px 14px;}
+  .months.open{display:grid;}
+  .month-chip{display:flex; align-items:center; gap:6px; font-size:12.5px; background:var(--sage-light); border-radius:8px; padding:6px 8px; cursor:pointer; user-select:none;}
+  .month-chip.done{background:var(--good); color:#fff; font-weight:600;}
+  .month-chip input{display:none;}
+  .item-edit-row{display:flex; gap:6px; padding:0 14px 12px; align-items:center;}
+  .fixed-pin{font-size:11px; color:var(--muted); white-space:nowrap;}
+
+  /* Anual */
+  .bloque-title{font-size:14.5px; font-weight:700; margin:16px 0 8px; display:flex; align-items:center; gap:8px;}
+  .anual-item{display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:6px;}
+  .anual-item span.txt{font-size:13.5px; flex:1;}
+  .status-pill{border:none; border-radius:999px; padding:6px 10px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap;}
+  .status-listo{background:var(--good); color:#fff;}
+  .status-progreso{background:var(--sky); color:#20465c;}
+
+  /* Manipuladores */
+  .manip-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .manip-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center;}
+  .manip-avatar{width:52px;height:52px;border-radius:50%; background:var(--lavender-light); display:flex; align-items:center; justify-content:center; font-size:20px;}
+  .manip-card input[type=text]{text-align:center; font-weight:600;}
+  .file-btn{display:inline-block; font-size:12px; padding:6px 10px; border-radius:8px; background:var(--lavender-light); color:#4A3B5C; cursor:pointer; font-weight:600;}
+  .file-btn input{display:none;}
+  .pdf-link{font-size:12px; color:var(--clay); font-weight:600; text-decoration:none;}
+
+  /* Proveedores */
+  .prov-card .prov-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .prov-name{font-weight:700; font-size:15px;}
+  .vehiculo-select{border:none; border-radius:999px; padding:5px 10px; font-size:11.5px; font-weight:700; cursor:pointer; width:auto;}
+  .veh-malo{background:var(--bad); color:#fff;}
+  .veh-bueno{background:var(--warn); color:#fff;}
+  .veh-muybueno{background:var(--good); color:#fff;}
+  .productos-list{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .producto-chip{background:var(--clay-light); color:#6b4423; font-size:12px; font-weight:600; padding:5px 9px; border-radius:999px; display:flex; align-items:center; gap:5px;}
+  .producto-chip button{background:none; border:none; color:#6b4423; cursor:pointer; font-size:12px; padding:0;}
+  .add-producto{display:flex; gap:6px; margin-top:8px;}
+
+  /* Horario */
+  .admin-emp-card{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .admin-emp-card .name-input{font-weight:700; border:none; background:transparent; padding:2px 0; font-size:15px;}
+  .admin-emp-card .hrs{font-size:12.5px; color:var(--muted);}
+  .badge-flag{font-size:11px; font-weight:700; padding:4px 8px; border-radius:999px; white-space:nowrap;}
+  .flag-ok{background:var(--sage-light); color:#3d5c37;}
+  .flag-low{background:#FBEBDE; color:#8a5a2c;}
+  .flag-high{background:#F7E7E9; color:#8A4650;}
+  .emp-actions{display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;}
+  .emp-toolbar{margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;}
+  .share-box{margin-top:10px; background:var(--sky-light); border-radius:12px; padding:10px;}
+  .share-box input{background:#fff;}
+  .share-box .hint{font-size:11.5px; color:#2c5570; margin-top:6px;}
+
+  .total-card{background:linear-gradient(135deg,var(--peach),var(--butter)); border-radius:18px; padding:20px; text-align:center; color:#4a3520; margin:12px 0;}
+  .total-card .lbl{font-size:12.5px; opacity:.85; font-weight:600;}
+  .total-card .num{font-family:'Fraunces',serif; font-size:38px; font-weight:700; margin:2px 0;}
+  .total-card .unit{font-size:12.5px; opacity:.85;}
+  .total-card .pdf-btn{margin-top:12px; background:#fff; color:#4a3520; border:none; padding:8px 16px; border-radius:999px; font-weight:700; font-size:13px; cursor:pointer;}
+
+  footer.note{text-align:center; color:var(--muted); font-size:11.5px; padding:20px 24px 10px;}
+  .lock-banner{background:var(--sage-light); border-radius:14px; padding:12px 14px; margin-bottom:14px; font-size:13px; color:#3d5c37; display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .lock-banner a{color:#3d5c37; font-weight:700; text-decoration:underline; white-space:nowrap;}
+
+  @media(min-width:720px){
+    .app-shell{padding:0 12px;}
+    nav.tabs{flex-wrap:wrap; overflow-x:visible;}
+    .manip-grid{grid-template-columns:repeat(4,1fr);}
+    .row-grid.two-col-desktop{grid-template-columns:1fr 1fr;}
+    table.cal{font-size:13.5px;}
+    table.cal th{font-size:11.5px;}
+    .card{padding:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="top">
+    <div class="eyebrow">Restaurante Begoña</div>
+    <h1 id="mainTitle">Control interno</h1>
+    <div class="sub" id="mainSub">Todo lo del día a día, en un solo sitio</div>
+  </header>
+
+  <div class="app-switch" id="appSwitch">
+    <button id="btn-appcc" class="active appcc" onclick="setApp('appcc')"><span class="ic">🧾</span>Control APPCC</button>
+    <button id="btn-horario" class="horario" onclick="setApp('horario')"><span class="ic">🕒</span>Control Horario</button>
+  </div>
+
+  <nav class="tabs" id="tabs"></nav>
+  <main id="main"></main>
+
+  <footer class="note">Los datos se guardan en este dispositivo por ahora. Cuando conectemos la cuenta, se sincronizarán en la nube para todo el equipo.</footer>
+</div>
+
+<script>
+/* ================= Shared helpers ================= */
+const DB = {
+  get(key, fallback){ try{ const r = localStorage.getItem('begona_'+key); return r?JSON.parse(r):fallback; }catch(e){return fallback;} },
+  set(key,value){ localStorage.setItem('begona_'+key, JSON.stringify(value)); }
+};
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+function monthKey(y,m){ return y+'-'+pad2(m+1); }
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function timeOptions(){
+  const arr = [''];
+  for(let h=0; h<24; h++){ for(let m=0; m<60; m+=15){ arr.push(pad2(h)+':'+pad2(m)); } }
+  return arr;
+}
+const TIME_OPTIONS = timeOptions();
+function timeSelect(value, onchange){
+  return `<select onchange="${onchange}">${TIME_OPTIONS.map(t=>`<option value="${t}" ${t===(value||'')?'selected':''}>${t===''?'-':t}</option>`).join('')}</select>`;
+}
+
+let currentApp = 'appcc';
+function setApp(app){
+  currentApp = app;
+  document.getElementById('btn-appcc').classList.toggle('active', app==='appcc');
+  document.getElementById('btn-horario').classList.toggle('active', app==='horario');
+  document.getElementById('mainTitle').textContent = app==='appcc' ? 'Control APPCC' : 'Control Horario';
+  document.getElementById('mainSub').textContent = app==='appcc' ? 'Registro diario de higiene y seguridad alimentaria' : 'Registro mensual de turnos del equipo';
+  renderAll();
+}
+
+/* ================= APPCC state ================= */
+const APPCC_TABS = [
+  {id:'temps',    label:'Temperaturas', icon:'🌡️', color:'peach'},
+  {id:'diario',   label:'Diario',       icon:'🍳', color:'butter'},
+  {id:'camaras',  label:'Cámaras',      icon:'❄️', color:'sky'},
+  {id:'limpieza', label:'Limpieza',     icon:'🧽', color:'sage'},
+  {id:'anual',    label:'Control anual',icon:'📋', color:'rose'},
+  {id:'manip',    label:'Manipuladores',icon:'🪪', color:'lavender'},
+  {id:'prov',     label:'Proveedores',  icon:'🚚', color:'clay'},
+];
+let activeAppccTab = 'temps';
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+function defaultLimpiezaItems(list){
+  return list.map(([name,freq]) => ({id:uid(), name, freq, months:Array(12).fill(false), fixed:true}));
+}
+
+let appcc = {
+  temps: DB.get('appcc_temps', {}),
+  diario: DB.get('appcc_diario', {}),
+  camaras: DB.get('appcc_camaras', {}),
+  limpieza: DB.get('appcc_limpieza', {
+    elementos: defaultLimpiezaItems([
+      ['Superficies','Diaria'],['Tablas de corte','Diaria'],['Cuchillos y útiles','Diaria'],
+      ['Vajilla','Diaria'],['Menaje','Diaria'],['Campana','Quincenal'],
+      ['Chapa o plancha','Diaria'],['Fuegos y zona contigua','Diaria'],['Horno','Cada 2 días']
+    ]),
+    maquinaria: defaultLimpiezaItems([
+      ['Picadora','Cuando se usa'],['Cortadora','Diaria'],['Envasadora','Diaria']
+    ]),
+    instalaciones: defaultLimpiezaItems([
+      ['Suelo de cocina',''],['Paredes de cocina',''],['Techo de la cocina',''],
+      ['Lavamanos / Fregadero',''],['Armarios de cocina',''],['Cámaras',''],
+      ['Congeladores',''],['Despensa',''],['Techo del local','']
+    ]),
+  }),
+  anual: DB.get('appcc_anual', {
+    bloques: [
+      {name:'Plan de limpieza y desinfección', items:[
+        {text:'Los productos de limpieza son aptos para uso alimentario y acordes a las necesidades de limpieza', status:'listo'},
+        {text:'Los productos y útiles de limpieza se encuentran correctamente almacenados.', status:'listo'},
+        {text:'Los productos de limpieza se encuentran en sus envases originales o, si se han trasvasado, están correctamente identificados.', status:'listo'},
+        {text:'Se utiliza el lavavajillas con un programa de agua caliente para la vajilla y otros útiles que puedan lavarse en él.', status:'listo'},
+        {text:'El método y frecuencia de limpieza es adecuado para mantener las instalaciones, maquinaria y útiles en condiciones higiénicas.', status:'listo'},
+      ]},
+      {name:'Plan de mantenimiento', items:[
+        {text:'Los equipos e instalaciones se mantienen de forma adecuada.', status:'listo'},
+        {text:'La maquinaria tiene un mantenimiento correcto y se usan los lubricantes y grasas de forma adecuada.', status:'listo'},
+        {text:'Todos los envases y útiles de trabajo se mantienen en buen estado y sin roturas ni fragmentos sueltos.', status:'listo'},
+      ]},
+      {name:'Plan de formación', items:[
+        {text:'El personal ha recibido formación inicial y formación continuada de manipuladores.', status:'listo'},
+        {text:'El personal al que se ha detectado la realización de prácticas incorrectas ha recibido formación adecuada.', status:'listo'},
+        {text:'El personal de mantenimiento está correctamente adiestrado para estas labores.', status:'listo'},
+      ]},
+      {name:'Plan de lucha contra plagas', items:[
+        {text:'No existen indicios de la presencia de insectos ni demás parásitos o animales indeseables.', status:'listo'},
+        {text:'Se dispone de elementos que evitan la presencia de plagas y se mantienen en buen estado.', status:'listo'},
+      ]},
+      {name:'Plan de autocontrol', items:[
+        {text:'Se cumplimentan los registros correctamente.', status:'listo'},
+        {text:'Se adoptan las medidas en caso de detectar incumplimientos.', status:'listo'},
+      ]},
+    ],
+    incidencias: [],
+  }),
+  manip: DB.get('appcc_manip', [
+    {id:uid(), nombre:'Martin Uribarri', pdfData:null, pdfName:null},
+    {id:uid(), nombre:'Nekane Santamaria', pdfData:null, pdfName:null},
+    {id:uid(), nombre:'Aitor Martinez', pdfData:null, pdfName:null},
+    {id:uid(), nombre:'Ricard Espinosa', pdfData:null, pdfName:null},
+    {id:uid(), nombre:'Xabier Uribarri', pdfData:null, pdfName:null},
+  ]),
+  prov: DB.get('appcc_prov', [
+    {id:uid(), nombre:'Pescados y Mariscos Gaizka', direccion:'Mercbilbao puesto 118, 48630 Basauri, Vizcaya', contacto:'Gaizka', telefono:'633307891', vehiculo:'bueno', productos:[]},
+    {id:uid(), nombre:'Conifresh', direccion:'Mercabilbao puesto 106, 48970 Basauri, Vizcaya', contacto:'Oscar', telefono:'944485525', vehiculo:'muybueno', productos:[]},
+    {id:uid(), nombre:'Makro', direccion:'Ctra Foral Bi-1035, Lutxana Erandio 36, 48950 Erandio', contacto:'', telefono:'944711424', vehiculo:'bueno', productos:[]},
+    {id:uid(), nombre:'Valdi', direccion:'Polígono Industrial Granada, Ortuella 485630', contacto:'Marcos', telefono:'946310400', vehiculo:'muybueno', productos:[]},
+    {id:uid(), nombre:'Olalde', direccion:'Iberre zeharbidea 1, 4860 Gorliz', contacto:'Joseba', telefono:'678695228', vehiculo:'muybueno', productos:[]},
+    {id:uid(), nombre:'Panadería La Moderna', direccion:'Panadería Moderna', contacto:'Pedro', telefono:'947347311', vehiculo:'bueno', productos:[]},
+    {id:uid(), nombre:'Celedón', direccion:'Carretera Miranda de Ebro 69-71, Burgos 09200', contacto:'Pedro', telefono:'947347311', vehiculo:'muybueno', productos:[]},
+    {id:uid(), nombre:'BKM', direccion:'Pabellón m5, Txori Erri etorbidea 46 polígono, Berreteaga bidea, Sondika 48150', contacto:'Jose', telefono:'944804543', vehiculo:'muybueno', productos:[]},
+    {id:uid(), nombre:'Okelan', direccion:'Pol. Abendaño · Urdaneta Bidea, 2220800 Zarautz, Gipuzkoa', contacto:'Joxi', telefono:'674155828', vehiculo:'muybueno', productos:[]},
+    {id:uid(), nombre:'Santi', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
+    {id:uid(), nombre:'Compas Norte', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
+    {id:uid(), nombre:'Susans', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
+    {id:uid(), nombre:'Brigitte', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
+    {id:uid(), nombre:'Uriaguereka', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
+  ]),
+};
+function persistAppcc(key){ DB.set('appcc_'+key, appcc[key]); }
+
+function sectionHead(title, color){
+  return `<div class="section-head"><h2><span class="accent-bar" style="background:var(--${color})"></span>${title}</h2></div>`;
+}
+function calNavHtml(){
+  return `
+    <div class="month-nav">
+      <button onclick="shiftCalMonth(-1)">‹ Anterior</button>
+      <div class="label"><h2>${MESES[calMonth]} ${calYear}</h2></div>
+      <button onclick="shiftCalMonth(1)">Siguiente ›</button>
+    </div>
+  `;
+}
+function shiftCalMonth(delta){
+  calMonth += delta;
+  if(calMonth<0){ calMonth=11; calYear--; }
+  if(calMonth>11){ calMonth=0; calYear++; }
+  renderAll();
+}
+function ensureCalMonth(section, factory){
+  const key = monthKey(calYear, calMonth);
+  if(!appcc[section][key]){
+    const n = daysInMonth(calYear, calMonth);
+    appcc[section][key] = Array.from({length:n}, (_,i)=>factory(i+1));
+    persistAppcc(section);
+  }
+  return appcc[section][key];
+}
+function updCalCell(section, rowId, field, value, isNumber){
+  const key = monthKey(calYear, calMonth);
+  const rows = appcc[section][key];
+  const r = rows.find(x=>x.id===rowId);
+  if(!r) return;
+  r[field] = isNumber ? (value===''?null:parseFloat(value)) : value;
+  persistAppcc(section); renderAll();
+}
+
+/* ---- Temperaturas (calendario del mes, proveedor en desplegable) ---- */
+function renderTemps(){
+  const rows = ensureCalMonth('temps', d => ({id:uid(), dia:d, producto:'', temp:null}));
+  const provOptions = appcc.prov.map(p=>p.nombre);
+  return `
+    ${sectionHead('Temperatura de productos recibidos','peach')}
+    <div class="card" style="background:var(--peach-light); border:none;">
+      <div style="font-size:13px; color:#7a4a2c;">Un renglón por cada día del mes: así se ve enseguida si falta alguno por rellenar.</div>
+    </div>
+    ${calNavHtml()}
+    <div class="table-wrap">
+      <table class="cal">
+        <thead><tr><th>Día</th><th>Producto / Proveedor</th><th>Temp. (°C)</th></tr></thead>
+        <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td class="dia">${r.dia}</td>
+            <td>
+              <select onchange="updCalCell('temps','${r.id}','producto',this.value,false)">
+                <option value="">-</option>
+                ${provOptions.map(nombre => `<option value="${nombre}" ${r.producto===nombre?'selected':''}>${nombre}</option>`).join('')}
+              </select>
+            </td>
+            <td><input type="number" step="0.1" value="${r.temp!=null?r.temp:''}" placeholder="-" onchange="updCalCell('temps','${r.id}','temp',this.value,true)"></td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ---- Diario (calendario del mes) ---- */
+function renderDiario(){
+  const rows = ensureCalMonth('diario', d => ({id:uid(), dia:d, fritura:'', horneado:'', vapor:'', plancha:'', cambioAceite:false}));
+  return `
+    ${sectionHead('Control diario de cocción','butter')}
+    <div class="card" style="background:var(--butter-light); border:none;">
+      <div style="font-size:13px; color:#6b5620;">Producto y temperatura por método de cocción. Marca la casilla el día que se cambie el aceite de la freidora.</div>
+    </div>
+    ${calNavHtml()}
+    <div class="table-wrap">
+      <table class="cal">
+        <thead><tr><th>Día</th><th>Fritura</th><th>Horneado</th><th>Vapor</th><th>Plancha</th><th>Cambio aceite</th></tr></thead>
+        <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td class="dia">${r.dia}</td>
+            <td><input type="text" value="${r.fritura||''}" placeholder="-" onchange="updCalCell('diario','${r.id}','fritura',this.value,false)"></td>
+            <td><input type="text" value="${r.horneado||''}" placeholder="-" onchange="updCalCell('diario','${r.id}','horneado',this.value,false)"></td>
+            <td><input type="text" value="${r.vapor||''}" placeholder="-" onchange="updCalCell('diario','${r.id}','vapor',this.value,false)"></td>
+            <td><input type="text" value="${r.plancha||''}" placeholder="-" onchange="updCalCell('diario','${r.id}','plancha',this.value,false)"></td>
+            <td><input type="checkbox" style="width:18px;height:18px;" ${r.cambioAceite?'checked':''} onchange="updCalCell('diario','${r.id}','cambioAceite',this.checked,false)"></td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ---- Camaras (calendario del mes) ---- */
+function renderCamaras(){
+  const rows = ensureCalMonth('camaras', d => ({id:uid(), dia:d, c1:null,c2:null,c3:null,c4:null,c5:null}));
+  return `
+    ${sectionHead('Temperatura de cámaras','sky')}
+    <div class="card" style="background:var(--sky-light); border:none;">
+      <div style="font-size:13px; color:#2c5570;">Temperatura diaria de las 5 cámaras del restaurante.</div>
+    </div>
+    ${calNavHtml()}
+    <div class="table-wrap">
+      <table class="cal">
+        <thead><tr><th>Día</th><th>Cám. 1</th><th>Cám. 2</th><th>Cám. 3</th><th>Cám. 4</th><th>Cám. 5</th></tr></thead>
+        <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td class="dia">${r.dia}</td>
+            ${[1,2,3,4,5].map(n=>`<td><input type="number" step="0.1" value="${r['c'+n]!=null?r['c'+n]:''}" placeholder="-" onchange="updCalCell('camaras','${r.id}','c${n}',this.value,true)"></td>`).join('')}
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ---- Limpieza (items por defecto fijos, no se pueden borrar) ---- */
+let openLimpiezaItems = {};
+function renderLimpiezaCat(catKey, title){
+  const items = appcc.limpieza[catKey];
+  return `
+    <div class="limpieza-cat">
+      <div class="section-head" style="margin-bottom:6px;"><h2 style="font-size:16px;">${title}</h2></div>
+      ${items.map(it => `
+        <div class="item-row">
+          <div class="item-head" onclick="toggleLimpiezaItem('${it.id}')">
+            <div class="left">
+              <span class="name">${it.name || '(sin nombre)'}</span>
+              ${it.freq ? `<span class="freq">${it.freq}</span>` : ''}
+            </div>
+            <span class="chev">${openLimpiezaItems[it.id] ? '▲' : '▼'}</span>
+          </div>
+          <div class="item-edit-row">
+            <input type="text" value="${it.name}" placeholder="Nombre" onclick="event.stopPropagation()" onchange="updLimpiezaField('${catKey}','${it.id}','name',this.value)">
+            <input type="text" value="${it.freq}" placeholder="Frecuencia" onclick="event.stopPropagation()" style="max-width:120px;" onchange="updLimpiezaField('${catKey}','${it.id}','freq',this.value)">
+            ${it.fixed
+              ? `<span class="fixed-pin">🔒 fijo</span>`
+              : `<button class="btn-del" onclick="event.stopPropagation(); delLimpiezaItem('${catKey}','${it.id}')">🗑</button>`}
+          </div>
+          <div class="months ${openLimpiezaItems[it.id]?'open':''}">
+            ${MESES.map((m,i)=>`
+              <label class="month-chip ${it.months[i]?'done':''}" onclick="event.stopPropagation()">
+                <input type="checkbox" ${it.months[i]?'checked':''} onchange="toggleMonth('${catKey}','${it.id}',${i})">
+                ${m.slice(0,3)}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+      <button class="btn btn-ghost btn-sm" onclick="addLimpiezaItem('${catKey}')">+ Añadir elemento</button>
+    </div>
+  `;
+}
+function renderLimpieza(){
+  return `
+    ${sectionHead('Control de limpieza','sage')}
+    <div class="card" style="background:var(--sage-light); border:none;">
+      <div style="font-size:13px; color:#3d5c37;">Marca el mes cuando se haya realizado la limpieza de cada elemento. Los elementos con 🔒 son fijos y no se pueden eliminar, solo añadir nuevos.</div>
+    </div>
+    ${renderLimpiezaCat('elementos','Elementos / Utillaje')}
+    ${renderLimpiezaCat('maquinaria','Maquinaria')}
+    ${renderLimpiezaCat('instalaciones','Instalaciones')}
+  `;
+}
+function toggleLimpiezaItem(id){ openLimpiezaItems[id] = !openLimpiezaItems[id]; renderAll(); }
+function toggleMonth(catKey, id, monthIndex){
+  const it = appcc.limpieza[catKey].find(x=>x.id===id);
+  it.months[monthIndex] = !it.months[monthIndex];
+  persistAppcc('limpieza'); renderAll();
+}
+function updLimpiezaField(catKey, id, field, value){
+  const it = appcc.limpieza[catKey].find(x=>x.id===id);
+  it[field] = value; persistAppcc('limpieza');
+}
+function addLimpiezaItem(catKey){
+  appcc.limpieza[catKey].push({id:uid(), name:'Nuevo elemento', freq:'', months:Array(12).fill(false), fixed:false});
+  persistAppcc('limpieza'); renderAll();
+}
+function delLimpiezaItem(catKey, id){
+  const it = appcc.limpieza[catKey].find(x=>x.id===id);
+  if(it && it.fixed) return;
+  appcc.limpieza[catKey] = appcc.limpieza[catKey].filter(x=>x.id!==id);
+  persistAppcc('limpieza'); renderAll();
+}
+
+/* ---- Anual ---- */
+function renderAnual(){
+  const a = appcc.anual;
+  return `
+    ${sectionHead('Control anual','rose')}
+    <div class="card" style="background:var(--rose-light); border:none;">
+      <div style="font-size:13px; color:#7a3f47;">Revisión anual de los planes de autocontrol. Toca el estado para cambiarlo.</div>
+    </div>
+    ${a.bloques.map((b,bi) => `
+      <div class="bloque-title">${b.name}</div>
+      ${b.items.map((it,ii) => `
+        <div class="anual-item">
+          <span class="txt">${it.text}</span>
+          <button class="status-pill ${it.status==='listo'?'status-listo':'status-progreso'}"
+            onclick="toggleAnualStatus(${bi},${ii})">${it.status==='listo'?'Listo':'En progreso'}</button>
+        </div>
+      `).join('')}
+      <div class="add-producto" style="margin-bottom:14px;">
+        <input type="text" id="newitem-${bi}" placeholder="Añadir punto a este bloque...">
+        <button class="btn btn-add btn-sm" onclick="addAnualItem(${bi})">+</button>
+      </div>
+    `).join('')}
+
+    <div class="bloque-title">Incidencias</div>
+    ${a.incidencias.length===0 ? `<div class="empty-hint">Sin incidencias registradas.</div>` : a.incidencias.slice().reverse().map(inc => `
+      <div class="anual-item">
+        <span class="txt"><strong>${inc.fecha}:</strong> ${inc.texto}</span>
+        <button class="btn-del" onclick="delIncidencia('${inc.id}')">🗑</button>
+      </div>
+    `).join('')}
+    <div class="card" style="margin-top:10px;">
+      <div class="row-grid two-col-desktop">
+        <div><label class="field-label">Fecha</label><input type="date" id="incFecha" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div><label class="field-label">Descripción</label><input type="text" id="incTexto" placeholder="Describe la incidencia..."></div>
+      </div>
+      <button class="btn btn-add" onclick="addIncidencia()">+ Registrar incidencia</button>
+    </div>
+  `;
+}
+function toggleAnualStatus(bi, ii){
+  const it = appcc.anual.bloques[bi].items[ii];
+  it.status = it.status==='listo' ? 'progreso' : 'listo';
+  persistAppcc('anual'); renderAll();
+}
+function addAnualItem(bi){
+  const inp = document.getElementById('newitem-'+bi);
+  if(!inp.value.trim()) return;
+  appcc.anual.bloques[bi].items.push({text:inp.value.trim(), status:'progreso'});
+  persistAppcc('anual'); renderAll();
+}
+function addIncidencia(){
+  const fecha = document.getElementById('incFecha').value;
+  const texto = document.getElementById('incTexto').value.trim();
+  if(!texto) return;
+  appcc.anual.incidencias.push({id:uid(), fecha, texto});
+  persistAppcc('anual'); renderAll();
+}
+function delIncidencia(id){ appcc.anual.incidencias = appcc.anual.incidencias.filter(i=>i.id!==id); persistAppcc('anual'); renderAll(); }
+
+/* ---- Manipuladores ---- */
+function renderManip(){
+  const list = appcc.manip;
+  return `
+    ${sectionHead('Manipuladores de alimentos','lavender')}
+    <div class="card" style="background:var(--lavender-light); border:none;">
+      <div style="font-size:13px; color:#4A3B5C;">Carnet de manipulador de cada empleado (PDF).</div>
+    </div>
+    <div class="manip-grid">
+    ${list.map(p => `
+      <div class="manip-card">
+        <div class="manip-avatar">🪪</div>
+        <input type="text" value="${p.nombre}" onchange="updManipField('${p.id}','nombre',this.value)">
+        <label class="file-btn">
+          ${p.pdfData ? 'Cambiar PDF' : 'Subir PDF'}
+          <input type="file" accept="application/pdf" onchange="uploadPdf('${p.id}', this)">
+        </label>
+        ${p.pdfData ? `<a class="pdf-link" href="${p.pdfData}" target="_blank" download="${p.pdfName||'carnet.pdf'}">Ver ${p.pdfName||'PDF'}</a>` : `<span style="font-size:11.5px;color:var(--muted);">Sin carnet</span>`}
+        <button class="btn-del" onclick="delManip('${p.id}')">🗑</button>
+      </div>
+    `).join('')}
+    </div>
+    <div style="margin-top:14px;"><button class="btn btn-add" onclick="addManip()">+ Añadir empleado</button></div>
+  `;
+}
+function updManipField(id, field, value){ const p = appcc.manip.find(x=>x.id===id); p[field]=value; persistAppcc('manip'); }
+function uploadPdf(id, input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const p = appcc.manip.find(x=>x.id===id);
+    p.pdfData = e.target.result; p.pdfName = file.name;
+    persistAppcc('manip'); renderAll();
+  };
+  reader.readAsDataURL(file);
+}
+function addManip(){ appcc.manip.push({id:uid(), nombre:'Nuevo empleado', pdfData:null, pdfName:null}); persistAppcc('manip'); renderAll(); }
+function delManip(id){ appcc.manip = appcc.manip.filter(p=>p.id!==id); persistAppcc('manip'); renderAll(); }
+
+/* ---- Proveedores ---- */
+function renderProv(){
+  const list = appcc.prov;
+  return `
+    ${sectionHead('Proveedores','clay')}
+    <div class="card" style="background:var(--clay-light); border:none;">
+      <div style="font-size:13px; color:#6b4423;">Datos de contacto, estado del vehículo y productos de cada proveedor. Se usan también en el desplegable de Temperaturas.</div>
+    </div>
+    <button class="btn btn-add" onclick="addProv()">+ Añadir proveedor</button>
+    <div style="margin-top:12px;">
+    ${list.map(p => `
+      <div class="card prov-card">
+        <div class="prov-top">
+          <input type="text" class="prov-name" value="${p.nombre}" style="border:none; background:transparent; padding:0; font-weight:700; font-size:15px;" onchange="updProvField('${p.id}','nombre',this.value)">
+          <button class="btn-del" onclick="delProv('${p.id}')">🗑</button>
+        </div>
+        <div class="row-grid two-col-desktop" style="margin-top:8px;">
+          <div><label class="field-label">Dirección</label><input type="text" value="${p.direccion||''}" onchange="updProvField('${p.id}','direccion',this.value)"></div>
+          <div><label class="field-label">Persona de contacto</label><input type="text" value="${p.contacto||''}" onchange="updProvField('${p.id}','contacto',this.value)"></div>
+          <div><label class="field-label">Teléfono</label><input type="tel" value="${p.telefono||''}" onchange="updProvField('${p.id}','telefono',this.value)"></div>
+          <div>
+            <label class="field-label">Estado del vehículo</label>
+            <select class="vehiculo-select veh-${p.vehiculo}" onchange="updProvField('${p.id}','vehiculo',this.value)">
+              <option value="malo" ${p.vehiculo==='malo'?'selected':''}>Malo</option>
+              <option value="bueno" ${p.vehiculo==='bueno'?'selected':''}>Bueno</option>
+              <option value="muybueno" ${p.vehiculo==='muybueno'?'selected':''}>Muy bueno</option>
+            </select>
+          </div>
+        </div>
+        <label class="field-label" style="margin-top:8px;">Productos</label>
+        <div class="productos-list">
+          ${p.productos.map((prod,i) => `<span class="producto-chip">${prod}<button onclick="delProducto('${p.id}',${i})">✕</button></span>`).join('')}
+        </div>
+        <div class="add-producto">
+          <input type="text" id="newprod-${p.id}" placeholder="Añadir producto...">
+          <button class="btn btn-add btn-sm" onclick="addProducto('${p.id}')">+</button>
+        </div>
+      </div>
+    `).join('')}
+    </div>
+  `;
+}
+function updProvField(id, field, value){
+  const p = appcc.prov.find(x=>x.id===id); p[field]=value; persistAppcc('prov');
+  if(field==='vehiculo' || field==='nombre') renderAll();
+}
+function addProv(){ appcc.prov.push({id:uid(), nombre:'Nuevo proveedor', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]}); persistAppcc('prov'); renderAll(); }
+function delProv(id){ appcc.prov = appcc.prov.filter(p=>p.id!==id); persistAppcc('prov'); renderAll(); }
+function addProducto(provId){
+  const inp = document.getElementById('newprod-'+provId);
+  if(!inp.value.trim()) return;
+  const p = appcc.prov.find(x=>x.id===provId);
+  p.productos.push(inp.value.trim());
+  persistAppcc('prov'); renderAll();
+}
+function delProducto(provId, idx){
+  const p = appcc.prov.find(x=>x.id===provId);
+  p.productos.splice(idx,1);
+  persistAppcc('prov'); renderAll();
+}
+
+/* ================= HORARIO state ================= */
+let empleados = DB.get('horario_empleados', [
+  {id:uid(), nombre:'Martin Uribarri'},
+  {id:uid(), nombre:'Nekane Santamaria'},
+  {id:uid(), nombre:'Aitor Martinez'},
+  {id:uid(), nombre:'Ricard Espinosa'},
+  {id:uid(), nombre:'Xabier Uribarri'},
+]);
+let turnos = DB.get('horario_turnos', {});
+let horYear = new Date().getFullYear();
+let horMonth = new Date().getMonth();
+let horExpanded = {};
+let pendingDeleteEmpId = null;
+let shareOpenFor = null;
+let nuevoEmpNombre = '';
+
+function persistEmpleados(){ DB.set('horario_empleados', empleados); }
+function persistTurnos(){ DB.set('horario_turnos', turnos); }
+
+function getMonthRows(empId, y, m){
+  const key = monthKey(y,m);
+  if(!turnos[empId]) turnos[empId] = {};
+  if(!turnos[empId][key]){
+    const n = daysInMonth(y,m);
+    turnos[empId][key] = Array.from({length:n}, (_,i)=>({id:uid(), dia:i+1, entM:'',salM:'',horasM:'',entN:'',salN:'',horasN:''}));
+    persistTurnos();
+  }
+  return turnos[empId][key];
+}
+function rowTotal(r){ return (parseFloat(r.horasM)||0) + (parseFloat(r.horasN)||0); }
+function monthTotal(rows){ return rows.reduce((s,r)=>s+rowTotal(r),0); }
+
+function renderHorarioTable(empId){
+  const rows = getMonthRows(empId, horYear, horMonth);
+  const total = monthTotal(rows);
+  return `
+    <div class="total-card">
+      <div class="lbl">Total del mes</div>
+      <div class="num">${total.toFixed(1)}</div>
+      <div class="unit">horas trabajadas</div>
+      <button class="pdf-btn" onclick="exportPDFFor('${empId}')">📄 Exportar PDF</button>
+    </div>
+    <div class="table-wrap">
+      <table class="cal">
+        <thead><tr><th>Día</th><th>Ent.M</th><th>Sal.M</th><th>Hs.M</th><th>Ent.N</th><th>Sal.N</th><th>Hs.N</th><th>Total</th></tr></thead>
+        <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td class="dia">${r.dia}</td>
+            <td>${timeSelect(r.entM, `updCell('${empId}','${r.id}','entM',this.value)`)}</td>
+            <td>${timeSelect(r.salM, `updCell('${empId}','${r.id}','salM',this.value)`)}</td>
+            <td><input type="number" step="0.5" value="${r.horasM||''}" placeholder="0" onchange="updCell('${empId}','${r.id}','horasM',this.value)"></td>
+            <td>${timeSelect(r.entN, `updCell('${empId}','${r.id}','entN',this.value)`)}</td>
+            <td>${timeSelect(r.salN, `updCell('${empId}','${r.id}','salN',this.value)`)}</td>
+            <td><input type="number" step="0.5" value="${r.horasN||''}" placeholder="0" onchange="updCell('${empId}','${r.id}','horasN',this.value)"></td>
+            <td class="total">${rowTotal(r).toFixed(1)}</td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+function updCell(empId, rowId, field, value){
+  const rows = getMonthRows(empId, horYear, horMonth);
+  const r = rows.find(x=>x.id===rowId);
+  if(!r) return;
+  r[field] = value;
+  persistTurnos(); renderAll();
+}
+function shiftHorMonth(delta){
+  horMonth += delta;
+  if(horMonth<0){ horMonth=11; horYear--; }
+  if(horMonth>11){ horMonth=0; horYear++; }
+  renderAll();
+}
+function toggleHorEmp(id){ horExpanded[id] = !horExpanded[id]; shareOpenFor=null; renderAll(); }
+
+function buildEmpLink(id){
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.searchParams.set('emp', id);
+  url.searchParams.set('modo', 'empleado');
+  return url.toString();
+}
+function toggleShare(id){ shareOpenFor = (shareOpenFor===id) ? null : id; renderAll(); }
+function copyShareLink(id){
+  const link = buildEmpLink(id);
+  const el = document.getElementById('sharelink-'+id);
+  if(el){ el.select(); el.setSelectionRange(0, 99999); }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).catch(()=>{});
+  }
+  const btn = document.getElementById('copybtn-'+id);
+  if(btn){ btn.textContent = '¡Copiado!'; setTimeout(()=>{ btn.textContent='Copiar enlace'; }, 2000); }
+}
+
+function renderHorario(){
+  const params = new URLSearchParams(window.location.search);
+  const lockId = params.get('emp');
+  const isLockMode = params.get('modo')==='empleado' && lockId;
+
+  if(isLockMode){
+    const emp = empleados.find(e=>e.id===lockId);
+    if(!emp){
+      return `<div class="empty-hint">Este enlace no corresponde a ningún empleado guardado en este dispositivo.</div>`;
+    }
+    return `
+      <div class="lock-banner">
+        <span>👤 Horario de <strong>${emp.nombre}</strong></span>
+        <a href="${window.location.pathname}">Ver panel completo</a>
+      </div>
+      <div class="month-nav">
+        <button onclick="shiftHorMonth(-1)">‹ Anterior</button>
+        <div class="label"><h2>${MESES[horMonth]} ${horYear}</h2></div>
+        <button onclick="shiftHorMonth(1)">Siguiente ›</button>
+      </div>
+      ${renderHorarioTable(emp.id)}
+    `;
+  }
+
+  return `
+    <div class="card" style="background:var(--sky-light); border:none;">
+      <div style="font-size:13px; color:#2c5570;">Toca un nombre para ver y editar su calendario del mes. Los días del mes ya salen puestos.</div>
+    </div>
+    <div class="month-nav">
+      <button onclick="shiftHorMonth(-1)">‹ Anterior</button>
+      <div class="label"><h2>${MESES[horMonth]} ${horYear}</h2></div>
+      <button onclick="shiftHorMonth(1)">Siguiente ›</button>
+    </div>
+    ${empleados.length===0 ? `<div class="empty-hint">No hay empleados todavía. Añade el primero abajo.</div>` : ''}
+    ${empleados.map(e => {
+      const rows = getMonthRows(e.id, horYear, horMonth);
+      const total = monthTotal(rows);
+      let flag='flag-ok', flagText='Normal';
+      if(total===0){ flag='flag-low'; flagText='Sin horas'; }
+      else if(total<60){ flag='flag-low'; flagText='Pocas horas'; }
+      else if(total>190){ flag='flag-high'; flagText='Muchas horas'; }
+      return `
+      <div class="card">
+        <div class="admin-emp-card">
+          <div class="emp-actions" onclick="toggleHorEmp('${e.id}')">
+            <div>
+              <input type="text" class="name-input" value="${e.nombre}" onclick="event.stopPropagation()" onchange="renameEmpleado('${e.id}', this.value)">
+              <div class="hrs">${total.toFixed(1)} horas este mes</div>
+            </div>
+          </div>
+          <span class="badge-flag ${flag}">${flagText}</span>
+        </div>
+        ${horExpanded[e.id] ? `
+          ${renderHorarioTable(e.id)}
+          <div class="emp-toolbar">
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); toggleShare('${e.id}')">📤 Enviar a ${e.nombre.split(' ')[0]}</button>
+            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); requestDeleteEmpleado('${e.id}')">${pendingDeleteEmpId===e.id ? '⚠️ Toca para confirmar' : '🗑 Eliminar empleado'}</button>
+          </div>
+          ${shareOpenFor===e.id ? `
+            <div class="share-box">
+              <label class="field-label">Enlace personal de ${e.nombre}</label>
+              <input id="sharelink-${e.id}" type="text" readonly value="${buildEmpLink(e.id)}" onclick="this.select()">
+              <button id="copybtn-${e.id}" class="btn btn-add btn-sm" style="margin-top:8px;" onclick="copyShareLink('${e.id}')">Copiar enlace</button>
+              <div class="hint">Envíaselo por WhatsApp o donde prefieras. Cuando la web esté publicada en internet (GitHub Pages), este enlace abrirá directamente su horario en el móvil.</div>
+            </div>
+          ` : ''}
+        ` : ''}
+      </div>
+    `}).join('')}
+
+    <div class="card">
+      <label class="field-label">Añadir empleado nuevo</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="nuevoEmpInput" placeholder="Nombre y apellido">
+        <button class="btn btn-add" onclick="addEmpleado()">+ Añadir</button>
+      </div>
+    </div>
+  `;
+}
+function addEmpleado(){
+  const inp = document.getElementById('nuevoEmpInput');
+  const nombre = inp ? inp.value.trim() : '';
+  if(!nombre) return;
+  empleados.push({id:uid(), nombre});
+  persistEmpleados(); renderAll();
+}
+function renameEmpleado(id, nuevoNombre){
+  const e = empleados.find(x=>x.id===id);
+  if(!e || !nuevoNombre.trim()) return;
+  e.nombre = nuevoNombre.trim();
+  persistEmpleados(); renderAll();
+}
+function requestDeleteEmpleado(id){
+  if(pendingDeleteEmpId===id){
+    empleados = empleados.filter(e=>e.id!==id);
+    delete turnos[id];
+    persistEmpleados(); persistTurnos();
+    pendingDeleteEmpId = null;
+    renderAll();
+  } else {
+    pendingDeleteEmpId = id;
+    renderAll();
+    setTimeout(()=>{ if(pendingDeleteEmpId===id){ pendingDeleteEmpId=null; renderAll(); } }, 4000);
+  }
+}
+function exportPDFFor(empId){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const emp = empleados.find(e=>e.id===empId);
+  const rows = getMonthRows(empId, horYear, horMonth);
+  const total = monthTotal(rows);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('Restaurante Begoña — Control Horario', 14, 18);
+  doc.setFontSize(12);
+  doc.text(`${emp ? emp.nombre : ''}`, 14, 26);
+  doc.text(`${MESES[horMonth]} ${horYear}`, 14, 33);
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  doc.text(`Total del mes: ${total.toFixed(1)} horas`, 14, 41);
+
+  let y = 52;
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  const headers = ['Día','Ent.M','Sal.M','Hs.M','Ent.N','Sal.N','Hs.N','Total'];
+  const colX = [14,32,50,68,84,102,120,138];
+  headers.forEach((h,i)=>doc.text(h, colX[i], y));
+  y+=6;
+  doc.setFont('helvetica','normal');
+  rows.forEach(r=>{
+    if(y>280){ doc.addPage(); y=20; }
+    const vals = [r.dia, r.entM||'-', r.salM||'-', r.horasM||'0', r.entN||'-', r.salN||'-', r.horasN||'0', rowTotal(r).toFixed(1)];
+    vals.forEach((v,i)=>doc.text(String(v), colX[i], y));
+    y+=6;
+  });
+  doc.save(`horario_${emp?emp.nombre.replace(/\s+/g,'_'):'empleado'}_${MESES[horMonth]}_${horYear}.pdf`);
+}
+
+/* ================= Render dispatcher ================= */
+function renderTabs(){
+  const nav = document.getElementById('tabs');
+  if(currentApp!=='appcc'){ nav.innerHTML=''; return; }
+  nav.innerHTML = APPCC_TABS.map(t => `
+    <button data-tab="${t.id}" class="${activeAppccTab===t.id?'active':''}" style="${activeAppccTab===t.id?`background:var(--${t.color});`:''}">
+      <span>${t.icon}</span><span>${t.label}</span>
+    </button>
+  `).join('');
+  nav.querySelectorAll('button').forEach(b=>{ b.onclick = () => { activeAppccTab = b.dataset.tab; renderAll(); }; });
+}
+function renderAll(){
+  renderTabs();
+  const main = document.getElementById('main');
+  if(currentApp==='appcc'){
+    const renderers = { temps:renderTemps, diario:renderDiario, camaras:renderCamaras, limpieza:renderLimpieza, anual:renderAnual, manip:renderManip, prov:renderProv };
+    main.innerHTML = renderers[activeAppccTab]();
+  } else {
+    main.innerHTML = renderHorario();
+  }
+}
+
+/* ---- Modo empleado por enlace: entra directo en Horario, sin pestañas de APPCC ---- */
+(function initLockMode(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('modo')==='empleado' && params.get('emp')){
+    currentApp = 'horario';
+    document.getElementById('appSwitch').style.display = 'none';
+    document.getElementById('mainTitle').textContent = 'Control Horario';
+    document.getElementById('mainSub').textContent = 'Tu registro de turnos';
+  }
+})();
+
+renderAll();
+</script>
+</body>
+</html>
