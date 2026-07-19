@@ -179,6 +179,7 @@
     <div class="eyebrow">Restaurante Begoña</div>
     <h1 id="mainTitle">Control interno</h1>
     <div class="sub" id="mainSub">Todo lo del día a día, en un solo sitio</div>
+    <div id="cloudBadge" style="font-size:12px; margin-top:6px; font-weight:600;"></div>
   </header>
 
   <div class="app-switch" id="appSwitch">
@@ -212,6 +213,77 @@ function timeOptions(){
 const TIME_OPTIONS = timeOptions();
 function timeSelect(value, onchange){
   return `<select onchange="${onchange}">${TIME_OPTIONS.map(t=>`<option value="${t}" ${t===(value||'')?'selected':''}>${t===''?'-':t}</option>`).join('')}</select>`;
+}
+
+/* ================= Supabase (guardado en la nube) ================= */
+const SUPABASE_URL = 'https://ozksefsaivqwrzcbmmto.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_inkklEU7tvm-bXOOsuPPMQ_y93a90JK';
+const SB_TABLE = 'begona_kv';
+let cloudStatus = 'conectando'; // conectando | ok | error
+
+function sbHeaders(extra){
+  return Object.assign({ apikey: SUPABASE_KEY, Authorization: 'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json' }, extra||{});
+}
+async function sbSet(key, value){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SB_TABLE}?on_conflict=key`, {
+      method:'POST',
+      headers: sbHeaders({ Prefer:'resolution=merge-duplicates' }),
+      body: JSON.stringify([{ key:key, value:value }])
+    });
+    cloudStatus = res.ok ? 'ok' : 'error';
+  }catch(e){ cloudStatus = 'error'; }
+  renderCloudBadge();
+}
+async function sbGetAll(){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${SB_TABLE}?select=key,value`, { headers: sbHeaders() });
+  if(!res.ok) throw new Error('No se pudo leer de Supabase');
+  return res.json();
+}
+function renderCloudBadge(){
+  const el = document.getElementById('cloudBadge');
+  if(!el) return;
+  const map = { conectando:['⏳','Conectando...','var(--muted)'], ok:['☁️','Guardado en la nube','#3d5c37'], error:['⚠️','Sin conexión, guardado solo en este dispositivo','#8A4650'] };
+  const [ic,txt,color] = map[cloudStatus];
+  el.innerHTML = `<span style="color:${color}">${ic} ${txt}</span>`;
+}
+
+function getLocalValue(key){
+  const map = {
+    appcc_temps: appcc.temps, appcc_diario: appcc.diario, appcc_camaras: appcc.camaras,
+    appcc_limpieza: appcc.limpieza, appcc_anual: appcc.anual, appcc_manip: appcc.manip, appcc_prov: appcc.prov,
+    horario_empleados: empleados, horario_turnos: turnos,
+  };
+  return map[key];
+}
+function applyCloudValue(key, value){
+  if(key==='appcc_temps') appcc.temps = value;
+  else if(key==='appcc_diario') appcc.diario = value;
+  else if(key==='appcc_camaras') appcc.camaras = value;
+  else if(key==='appcc_limpieza') appcc.limpieza = value;
+  else if(key==='appcc_anual') appcc.anual = value;
+  else if(key==='appcc_manip') appcc.manip = value;
+  else if(key==='appcc_prov') appcc.prov = value;
+  else if(key==='horario_empleados') empleados = value;
+  else if(key==='horario_turnos') turnos = value;
+  DB.set(key, value);
+}
+async function initCloudSync(){
+  const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos'];
+  try{
+    const rows = await sbGetAll();
+    const cloudMap = {};
+    rows.forEach(r => cloudMap[r.key] = r.value);
+    allKeys.forEach(k => {
+      if(cloudMap[k] !== undefined && cloudMap[k] !== null){ applyCloudValue(k, cloudMap[k]); }
+      else { sbSet(k, getLocalValue(k)); }
+    });
+    cloudStatus = 'ok';
+  }catch(e){
+    cloudStatus = 'error';
+  }
+  renderCloudBadge();
+  renderAll();
 }
 
 let currentApp = 'appcc';
@@ -315,7 +387,7 @@ let appcc = {
     {id:uid(), nombre:'Uriaguereka', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
   ]),
 };
-function persistAppcc(key){ DB.set('appcc_'+key, appcc[key]); }
+function persistAppcc(key){ DB.set('appcc_'+key, appcc[key]); sbSet('appcc_'+key, appcc[key]); }
 
 function sectionHead(title, color){
   return `<div class="section-head"><h2><span class="accent-bar" style="background:var(--${color})"></span>${title}</h2></div>`;
@@ -683,8 +755,8 @@ let pendingDeleteEmpId = null;
 let shareOpenFor = null;
 let nuevoEmpNombre = '';
 
-function persistEmpleados(){ DB.set('horario_empleados', empleados); }
-function persistTurnos(){ DB.set('horario_turnos', turnos); }
+function persistEmpleados(){ DB.set('horario_empleados', empleados); sbSet('horario_empleados', empleados); }
+function persistTurnos(){ DB.set('horario_turnos', turnos); sbSet('horario_turnos', turnos); }
 
 function getMonthRows(empId, y, m){
   const key = monthKey(y,m);
@@ -1059,6 +1131,8 @@ function renderAll(){
 })();
 
 renderAll();
+renderCloudBadge();
+initCloudSync();
 </script>
 </body>
 </html>
