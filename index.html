@@ -6,6 +6,7 @@
 <title>Restaurante Begoña · Control interno</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
@@ -17,6 +18,8 @@
     --rose:#DCA3AA;     --rose-light:#F7E7E9;
     --lavender:#C6B4D8; --lavender-light:#EEE6F3;
     --clay:#D6A276;     --clay-light:#F5E9DB;
+    --mint:#8FC3AE;     --mint-light:#E1F0E9;
+    --coral:#E3A9A0;    --coral-light:#F8E6E2;
     --good:#8FB89A; --warn:#E0A96D; --bad:#D68585;
   }
   *{box-sizing:border-box;}
@@ -41,6 +44,20 @@
   .app-switch button .ic{font-size:16px;}
   .app-switch button.active.appcc{background:var(--sage); border-color:transparent;}
   .app-switch button.active.horario{background:var(--sky); border-color:transparent;}
+  .app-switch button.active.escandallos{background:var(--mint); border-color:transparent;}
+
+  .plato-card .plato-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .plato-name{font-weight:700; font-size:16px;}
+  .ing-row{display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:6px; margin-bottom:6px; align-items:center;}
+  .ing-row input{font-size:12.5px; padding:6px 7px;}
+  .ing-head{display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:6px; font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;}
+  .plato-summary{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);}
+  .summary-chip{background:var(--mint-light); color:#2d5c48; border-radius:10px; padding:8px 12px; font-size:12px; flex:1; min-width:110px; text-align:center;}
+  .summary-chip .big{font-family:'Fraunces',serif; font-weight:700; font-size:18px; display:block;}
+  .summary-chip.warn{background:var(--rose-light); color:#8A4650;}
+  .import-panel{background:var(--mint-light); border-radius:14px; padding:14px; margin-bottom:14px;}
+  .import-map-row{display:grid; grid-template-columns:1fr 1.4fr; gap:8px; align-items:center; margin-bottom:8px;}
+  .import-map-row label{font-size:12.5px; font-weight:600;}
 
   nav.tabs{display:flex; overflow-x:auto; gap:8px; padding:6px 16px 14px; scrollbar-width:none;}
   nav.tabs::-webkit-scrollbar{display:none;}
@@ -194,6 +211,14 @@
   <footer class="note">Los datos se guardan en este dispositivo por ahora. Cuando conectemos la cuenta, se sincronizarán en la nube para todo el equipo.</footer>
 </div>
 
+<div id="pdfModal" style="display:none; position:fixed; inset:0; background:rgba(30,26,22,.85); z-index:999; flex-direction:column;">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#fff;">
+    <strong id="pdfModalTitle" style="font-size:14px;"></strong>
+    <button onclick="cerrarPdf()" style="border:none;background:var(--rose-light);color:#8A4650;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;">Cerrar ✕</button>
+  </div>
+  <iframe id="pdfModalFrame" style="flex:1; border:none; width:100%; background:#fff;"></iframe>
+</div>
+
 <script>
 /* ================= Shared helpers ================= */
 const DB = {
@@ -268,6 +293,12 @@ function applyCloudValue(key, value){
   else if(key==='horario_turnos') turnos = value;
   DB.set(key, value);
 }
+function isNonEmptyValue(v){
+  if(v==null) return false;
+  if(Array.isArray(v)) return v.length>0;
+  if(typeof v==='object') return Object.keys(v).length>0;
+  return !!v;
+}
 async function initCloudSync(){
   const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos'];
   try{
@@ -275,8 +306,13 @@ async function initCloudSync(){
     const cloudMap = {};
     rows.forEach(r => cloudMap[r.key] = r.value);
     allKeys.forEach(k => {
-      if(cloudMap[k] !== undefined && cloudMap[k] !== null){ applyCloudValue(k, cloudMap[k]); }
-      else { sbSet(k, getLocalValue(k)); }
+      if(cloudMap[k] !== undefined && cloudMap[k] !== null){
+        applyCloudValue(k, cloudMap[k]);
+      } else if(isNonEmptyValue(getLocalValue(k))){
+        // Solo empujamos hacia la nube si este dispositivo tiene datos reales que aportar.
+        // Nunca se sobrescribe la nube con un valor vacío, para no perder datos por un fallo pasajero.
+        sbSet(k, getLocalValue(k));
+      }
     });
     cloudStatus = 'ok';
   }catch(e){
@@ -364,11 +400,11 @@ let appcc = {
     incidencias: [],
   }),
   manip: DB.get('appcc_manip', [
-    {id:uid(), nombre:'Martin Uribarri', pdfData:null, pdfName:null},
-    {id:uid(), nombre:'Nekane Santamaria', pdfData:null, pdfName:null},
-    {id:uid(), nombre:'Aitor Martinez', pdfData:null, pdfName:null},
-    {id:uid(), nombre:'Ricard Espinosa', pdfData:null, pdfName:null},
-    {id:uid(), nombre:'Xabier Uribarri', pdfData:null, pdfName:null},
+    {id:uid(), nombre:'Martin Uribarri', pdfUrl:null, pdfName:null},
+    {id:uid(), nombre:'Nekane Santamaria', pdfUrl:null, pdfName:null},
+    {id:uid(), nombre:'Aitor Martinez', pdfUrl:null, pdfName:null},
+    {id:uid(), nombre:'Ricard Espinosa', pdfUrl:null, pdfName:null},
+    {id:uid(), nombre:'Xabier Uribarri', pdfUrl:null, pdfName:null},
   ]),
   prov: DB.get('appcc_prov', [
     {id:uid(), nombre:'Pescados y Mariscos Gaizka', direccion:'Mercbilbao puesto 118, 48630 Basauri, Vizcaya', contacto:'Gaizka', telefono:'633307891', vehiculo:'bueno', productos:[]},
@@ -653,10 +689,10 @@ function renderManip(){
         <div class="manip-avatar">🪪</div>
         <input type="text" value="${p.nombre}" onchange="updManipField('${p.id}','nombre',this.value)">
         <label class="file-btn">
-          ${p.pdfData ? 'Cambiar PDF' : 'Subir PDF'}
-          <input type="file" accept="application/pdf" onchange="uploadPdf('${p.id}', this)">
+          ${p.pdfUploading ? 'Subiendo...' : (p.pdfUrl ? 'Cambiar PDF' : 'Subir PDF')}
+          <input type="file" accept="application/pdf" onchange="uploadPdf('${p.id}', this)" ${p.pdfUploading?'disabled':''}>
         </label>
-        ${p.pdfData ? `<a class="pdf-link" href="${p.pdfData}" target="_blank" download="${p.pdfName||'carnet.pdf'}">Ver ${p.pdfName||'PDF'}</a>` : `<span style="font-size:11.5px;color:var(--muted);">Sin carnet</span>`}
+        ${p.pdfUrl ? `<button class="pdf-link" style="border:none;background:none;cursor:pointer;" onclick="verPdf('${p.pdfUrl.replace(/'/g,"\\'")}','${(p.pdfName||'PDF').replace(/'/g,"\\'")}')">👁️ Ver ${p.pdfName||'PDF'}</button>` : `<span style="font-size:11.5px;color:var(--muted);">${p.pdfUploading?'Subiendo carnet...':'Sin carnet'}</span>`}
         <button class="btn-del" onclick="delManip('${p.id}')">🗑</button>
       </div>
     `).join('')}
@@ -665,17 +701,36 @@ function renderManip(){
   `;
 }
 function updManipField(id, field, value){ const p = appcc.manip.find(x=>x.id===id); p[field]=value; persistAppcc('manip'); }
-function uploadPdf(id, input){
+async function uploadPdf(id, input){
   const file = input.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const p = appcc.manip.find(x=>x.id===id);
-    p.pdfData = e.target.result; p.pdfName = file.name;
-    persistAppcc('manip'); renderAll();
-  };
-  reader.readAsDataURL(file);
+  const p = appcc.manip.find(x=>x.id===id);
+  p.pdfUploading = true; renderAll();
+  const path = `${id}_${Date.now()}_${encodeURIComponent(file.name)}`;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/carnets/${path}`, {
+      method:'POST',
+      headers: sbHeaders({ 'Content-Type': file.type || 'application/pdf' }),
+      body: file
+    });
+    if(!res.ok) throw new Error('Fallo al subir: '+res.status);
+    p.pdfUrl = `${SUPABASE_URL}/storage/v1/object/public/carnets/${path}`;
+    p.pdfName = file.name;
+  }catch(e){
+    alert('No se ha podido subir el PDF. Comprueba que el bucket "carnets" existe, es público, y que has ejecutado las políticas SQL indicadas.');
+  }
+  p.pdfUploading = false;
+  persistAppcc('manip'); renderAll();
 }
-function addManip(){ appcc.manip.push({id:uid(), nombre:'Nuevo empleado', pdfData:null, pdfName:null}); persistAppcc('manip'); renderAll(); }
+function addManip(){ appcc.manip.push({id:uid(), nombre:'Nuevo empleado', pdfUrl:null, pdfName:null}); persistAppcc('manip'); renderAll(); }
+function verPdf(url, nombre){
+  document.getElementById('pdfModalTitle').textContent = nombre;
+  document.getElementById('pdfModalFrame').src = url;
+  document.getElementById('pdfModal').style.display = 'flex';
+}
+function cerrarPdf(){
+  document.getElementById('pdfModal').style.display = 'none';
+  document.getElementById('pdfModalFrame').src = '';
+}
 function delManip(id){ appcc.manip = appcc.manip.filter(p=>p.id!==id); persistAppcc('manip'); renderAll(); }
 
 /* ---- Proveedores ---- */
@@ -1072,7 +1127,7 @@ function exportAppccPDF(){
 
   // Manipuladores
   deptHeader('6. Manipuladores de alimentos');
-  appcc.manip.forEach(p => line(`${p.nombre}: ${p.pdfData ? 'Carnet subido ('+ (p.pdfName||'PDF') +')' : 'Sin carnet subido'}`));
+  appcc.manip.forEach(p => line(`${p.nombre}: ${p.pdfUrl ? 'Carnet subido ('+ (p.pdfName||'PDF') +')' : 'Sin carnet subido'}`));
   y += 4;
 
   // Proveedores
