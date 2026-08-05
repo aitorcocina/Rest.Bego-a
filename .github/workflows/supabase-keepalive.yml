@@ -1,0 +1,18 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Lunes y jueves a las 8:00 UTC
+    - cron: '0 8 * * 1,4'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping a Supabase (begona-appcc)
+        run: |
+          curl -s -o /dev/null -w "Respuesta de Supabase: %{http_code}\n" \
+            "https://ozksefsaivqwrzcbmmto.supabase.co/rest/v1/begona_kv?select=key&limit=1" \
+            -H "apikey: sb_publishable_inkklEU7tvm-bXOOsuPPMQ_y93a90JK" \
+            -H "Authorization: Bearer sb_publishable_inkklEU7tvm-bXOOsuPPMQ_y93a90JK"
