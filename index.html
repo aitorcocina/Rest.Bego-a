@@ -34,7 +34,7 @@
   header.top h1{font-size:22px; color:var(--muted); font-weight:500;}
   header.top .sub{font-size:13px; color:var(--muted); margin-top:4px;}
 
-  .app-switch{display:flex; gap:8px; padding:0 16px 16px; max-width:420px; margin:0 auto;}
+  .app-switch{display:flex; gap:8px; padding:0 16px 16px; max-width:560px; margin:0 auto;}
   .app-switch button{
     flex:1; border:none; border-radius:12px; padding:10px 8px; cursor:pointer;
     font-family:'Inter',sans-serif; font-weight:600; font-size:12.5px; color:var(--ink);
@@ -45,6 +45,7 @@
   .app-switch button.active.appcc{background:var(--sage); border-color:transparent;}
   .app-switch button.active.horario{background:var(--sky); border-color:transparent;}
   .app-switch button.active.escandallos{background:var(--mint); border-color:transparent;}
+  .app-switch button.active.recetas{background:var(--butter); border-color:transparent;}
 
   .plato-card .plato-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
   .plato-name{font-weight:700; font-size:16px;}
@@ -176,6 +177,28 @@
   .total-card .pdf-btn{margin-top:12px; background:#fff; color:#4a3520; border:none; padding:8px 16px; border-radius:999px; font-weight:700; font-size:13px; cursor:pointer;}
 
   footer.note{text-align:center; color:var(--muted); font-size:11.5px; padding:20px 24px 10px;}
+
+  /* Recetas */
+  .receta-search{margin-bottom:14px;}
+  .receta-item{
+    background:var(--card); border:1px solid var(--border); border-radius:16px; margin-bottom:10px;
+    overflow:hidden; box-shadow:0 1px 2px rgba(62,58,52,.04); transition:box-shadow .15s ease;
+  }
+  .receta-item.open{box-shadow:0 4px 14px rgba(62,58,52,.08);}
+  .receta-head{display:flex; align-items:center; gap:12px; padding:15px 16px; cursor:pointer;}
+  .receta-head .ic-bubble{
+    width:36px; height:36px; border-radius:10px; background:var(--butter-light); color:#7a5b12;
+    display:flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto;
+  }
+  .receta-head .nombre{
+    font-family:'Fraunces',serif; font-weight:600; font-size:15.5px; letter-spacing:.01em; flex:1;
+    text-transform:capitalize;
+  }
+  .receta-head .chev{color:var(--muted); font-size:12px; flex:0 0 auto;}
+  .receta-body{padding:0 16px 16px; border-top:1px dashed var(--border); margin-top:2px; padding-top:14px;}
+  .receta-contenido{white-space:pre-wrap; font-size:13.5px; line-height:1.7; color:var(--ink); margin-bottom:12px;}
+  .receta-toolbar{display:flex; gap:8px; flex-wrap:wrap;}
+  .receta-edit input[type=text]{font-weight:700; margin-bottom:8px; text-transform:uppercase;}
   .lock-banner{background:var(--sage-light); border-radius:14px; padding:12px 14px; margin-bottom:14px; font-size:13px; color:#3d5c37; display:flex; justify-content:space-between; align-items:center; gap:8px;}
   .lock-banner a{color:#3d5c37; font-weight:700; text-decoration:underline; white-space:nowrap;}
 
@@ -202,6 +225,7 @@
   <div class="app-switch" id="appSwitch">
     <button id="btn-appcc" class="active appcc" onclick="setApp('appcc')"><span class="ic">🧾</span>Control APPCC</button>
     <button id="btn-horario" class="horario" onclick="setApp('horario')"><span class="ic">🕒</span>Control Horario</button>
+    <button id="btn-recetas" class="recetas" onclick="setApp('recetas')"><span class="ic">📖</span>Recetas</button>
   </div>
 
   <nav class="tabs" id="tabs"></nav>
@@ -277,7 +301,7 @@ function getLocalValue(key){
   const map = {
     appcc_temps: appcc.temps, appcc_diario: appcc.diario, appcc_camaras: appcc.camaras,
     appcc_limpieza: appcc.limpieza, appcc_anual: appcc.anual, appcc_manip: appcc.manip, appcc_prov: appcc.prov,
-    horario_empleados: empleados, horario_turnos: turnos,
+    horario_empleados: empleados, horario_turnos: turnos, recetas: recetas,
   };
   return map[key];
 }
@@ -291,6 +315,7 @@ function applyCloudValue(key, value){
   else if(key==='appcc_prov') appcc.prov = value;
   else if(key==='horario_empleados') empleados = value;
   else if(key==='horario_turnos') turnos = value;
+  else if(key==='recetas') recetas = value;
   DB.set(key, value);
 }
 function isNonEmptyValue(v){
@@ -300,7 +325,10 @@ function isNonEmptyValue(v){
   return !!v;
 }
 async function initCloudSync(){
-  const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos'];
+  const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos','recetas'];
+  // Estas tres secciones las gestionan tareas automáticas en Supabase (cron). Ningún dispositivo
+  // debe poder "sembrar" ni sobrescribir su contenido inicial nunca: solo se leen, jamás se empujan.
+  const soloLectura = new Set(['appcc_temps','appcc_diario','appcc_camaras']);
   try{
     const rows = await sbGetAll();
     const cloudMap = {};
@@ -308,9 +336,9 @@ async function initCloudSync(){
     allKeys.forEach(k => {
       if(cloudMap[k] !== undefined && cloudMap[k] !== null){
         applyCloudValue(k, cloudMap[k]);
-      } else if(isNonEmptyValue(getLocalValue(k))){
-        // Solo empujamos hacia la nube si este dispositivo tiene datos reales que aportar.
-        // Nunca se sobrescribe la nube con un valor vacío, para no perder datos por un fallo pasajero.
+      } else if(!soloLectura.has(k) && isNonEmptyValue(getLocalValue(k))){
+        // Solo empujamos hacia la nube si este dispositivo tiene datos reales que aportar,
+        // y nunca para las secciones gestionadas por cron.
         sbSet(k, getLocalValue(k));
       }
     });
@@ -318,17 +346,22 @@ async function initCloudSync(){
   }catch(e){
     cloudStatus = 'error';
   }
+  cloudSyncDone = true;
   renderCloudBadge();
   renderAll();
 }
 
 let currentApp = 'appcc';
+let cloudSyncDone = false;
 function setApp(app){
   currentApp = app;
   document.getElementById('btn-appcc').classList.toggle('active', app==='appcc');
   document.getElementById('btn-horario').classList.toggle('active', app==='horario');
-  document.getElementById('mainTitle').textContent = app==='appcc' ? 'Control APPCC' : 'Control Horario';
-  document.getElementById('mainSub').textContent = app==='appcc' ? 'Registro diario de higiene y seguridad alimentaria' : 'Registro mensual de turnos del equipo';
+  document.getElementById('btn-recetas').classList.toggle('active', app==='recetas');
+  const titles = { appcc:'Control APPCC', horario:'Control Horario', recetas:'Recetas' };
+  const subs = { appcc:'Registro diario de higiene y seguridad alimentaria', horario:'Registro mensual de turnos del equipo', recetas:'Recetario del restaurante, siempre a mano' };
+  document.getElementById('mainTitle').textContent = titles[app];
+  document.getElementById('mainSub').textContent = subs[app];
   renderAll();
 }
 
@@ -448,7 +481,9 @@ function ensureCalMonth(section, factory){
   if(!appcc[section][key]){
     const n = daysInMonth(calYear, calMonth);
     appcc[section][key] = Array.from({length:n}, (_,i)=>factory(i+1));
-    persistAppcc(section);
+    // Estas tres secciones las crea/rellena el cron en Supabase; el navegador nunca sube este
+    // "hueco" recién creado, solo lo guarda localmente para poder mostrarlo mientras tanto.
+    DB.set('appcc_'+section, appcc[section]);
   }
   return appcc[section][key];
 }
@@ -794,6 +829,119 @@ function delProducto(provId, idx){
   persistAppcc('prov'); renderAll();
 }
 
+/* ================= RECETAS ================= */
+let recetas = DB.get('recetas', [{"nombre": "SALSA TXIPIS", "contenido": "POR KG DE TXIPIRON: 0,8 kg de cebolla\n0,045 pimiento verde\n0,025 zanahoria\n1 cabeza de ajos por cada 20 kg de txipirón, Bote pq de tomate triturado por cada 20 kg, 2/3 de bote\nde tinta mas sus tintas por cada 20 kg ."}, {"nombre": "SALSA BIZKAINA", "contenido": "20 kg de cebolla , 800 gr de carne de choricero, 1 y ½ cabezas de ajos , 300 gramos de pan frito."}, {"nombre": "SALSA RUBIA", "contenido": "10 cebollas, 2 puerros, 4 zanahorias, caramelo , harina, agua\n4 estarlux. 1/2 lata de tomate pequeña.Pochar las verduras, el tomate, añadir las pastilla , añadir la harina y rehogar, añadir caramelo."}, {"nombre": "SALSA DE TOMATE", "contenido": "4,350 kg de cebolla , 1 lata de piquillo, 2 latas grande de tomate triturado, 1 cucharada de azucar por\ncada kg de tomate, corregir de sal, 8 gramos de santana, 20 gramos de sal."}, {"nombre": "SOPA DE PESCADO", "contenido": "2,5 kg de cebolla – 900 gr de Zanahoria – ½ Bote de tomate triturado , un cazo de Bizkaina , Foumet,\n1 barra de pan frito – 1 kg de langostinos ,AOVE – sal – coñac.\nPochar cebolla y zanahoria cortados en juliana con un chorrito de AOVE\nAñadir cascotes cuando este pochada, Añadir los langostinos,Chorrito de coñac y flambear, Añadir\ntomate , la Bizkaiana y cocinar un poco. Añadir el pan frito.Añadir el foumet y algún trozo de\nespina.Triturar todo y pasar por el chino.\nLevantar y poner a punto de sal."}, {"nombre": "MOUSE DE PIPARRAS", "contenido": "140 gr de piparra limpia, 50 gr de aceituna, 5 gr de mostaza, 45 gr de queso crema, 40 gr de AOVE,\n10 gr de Glucosa."}, {"nombre": "CARACOLES", "contenido": "4 cebollas grandes , 8 txorizos, 750 de jamón , 1 l de bizkaina."}, {"nombre": "CROQUETAS DE JAMON", "contenido": "500 gr de mantequilla , 500 gr de harina , 105 de gelatina , 5 L de leche , 750 gr de jamón."}, {"nombre": "CROQUETAS DE BACALAO", "contenido": "285 gr de mantequilla, 285 gr de aceite de ajo , 580 gr de harina, 10 de gelatina, 4,5 L de leche, 1,5\nkg de bacalao."}, {"nombre": "SIFÓN DE PATATA", "contenido": "500 gr de patata, 250 gr de nata, 200 gr de agua, 6 gr de sal , 30 gr de aceite, 10 gr de albumina , 1,5\nde santana."}, {"nombre": "SIFÓN DE BERENJENA", "contenido": "150 gr patata, 350 gr berenjena, 30 gr aceite, 6 gr de sal, 150 gr nata, 100 gr sal, 20 gr albumina, 2 gr\nsantana"}, {"nombre": "PATATA PULPO", "contenido": "500 gr de patata, 70 gr de mantequilla, 3 gr de pimentón, 6 gr de sal, 30 gr de aceite, puntita de humo."}, {"nombre": "PIZCLES", "contenido": "750 gr de vinagre, 1,2 l de agua , 160 gr de sal."}, {"nombre": "BRESA CARRILERAS (10KG)", "contenido": "300gr de puerro, 300 gr zanahoria, 750 gr cebolla, 750 gr de ajo, caldo de carne , 3 l de vino."}, {"nombre": "CARRILLERAS", "contenido": "TERNERA : 10 horas a 90º, CERDO: 10 horas a 73º"}, {"nombre": "COSTILLA", "contenido": "Costilla , soja . 12 horas a 70º vapor"}, {"nombre": "FALDA", "contenido": "Falda , soja .\n15 horas a 73º vapor"}, {"nombre": "BONITO", "contenido": "60 gr de sal por litro de agua ( 14 litros 840 de sal)\nTemperatura interior 65º"}, {"nombre": "MERMELADA DE PIQUILLO", "contenido": "400 Gr piquillo, 200 gr azucar, 100 gr vinagre,\n100º +- 25 minutos , triturar al 6 un minuto y luego al 2."}, {"nombre": "ENCURTIDO", "contenido": "240 gr de vinagre, 120 gr de agua, 10 gr de sal, 40 gr de azucar."}, {"nombre": "ENSALADILLA RUSA", "contenido": "1 kg de patata asadas (180º 40 min) , 750 g de mahonesa, 34 gr de piquillo , 15 gr vinagre de 12 años,\n124 gr aceituna.\nRación: 300 gr + 40 de bonito +Huevo rayado y tres langostinos"}, {"nombre": "VINAGRETA", "contenido": "2 Kg de pimiento verde, 4,5 kg de cebolla, 1,080 kg de vinagre, 3,600 AOVE"}, {"nombre": "SALSA BUFALO", "contenido": "1 kg de salsa de tomate ,100 gr de mantequilla, 8 gr d ajo en polvo, 3 gr de humo, 3 gr de pimentón\ndulce, 40 gr de vinagre, 150 gr de caldo , 20 gr de chile."}, {"nombre": "TOGARASHI", "contenido": "15 gr de togarashi, 15 gr de crispi cebolla (china), 2 gr sal, 20 gr de mirin, 15 gr aceite de sesamo, 15\ngra de soja, 300 gr de mahonesa."}, {"nombre": "SALSA BOURBON", "contenido": "1L de caldo, 120 gr de bourbon, 400 gr de yema, 5 gr de sal,\nMaicena expres, 40 gr 85º 3,5 v"}, {"nombre": "SALSA TRUFA", "contenido": "1L de caldo, 350 de tartufata, 50 gr de px, 130 de maicena oscura , 7 gr de sal (85º 3,5 v)"}, {"nombre": "MAYOBURGUER", "contenido": "Ajo en polvo 16 gr, ketchup 40 gr, HP 60 gr, Mayonesa 1kg"}, {"nombre": "EMI", "contenido": "450 gr de mayonesa, 40 gr de mantequilla,50 gr de miel, 25 gr de soja, 50 gr de aceite de sesamo, 25\ngr vinagre de arroz, 50 gr de gochuyan en pasta, 8 gr de ajo en polvo.\nGelespesa 1,73 gr por kilo"}, {"nombre": "FOIE", "contenido": "Por kg: 13 gr de sal, 1,5 gr de pimienta, 3gr de azúcar,\n14 min a 67º , enfriar sin apoyar el foie."}, {"nombre": "TOFFE DE MAIZ", "contenido": "500gr de azucar, 80 gr agua, 450 gr de maiz,\nHacer caramelio y cuando este rubio añadir el maiz, dejar cocinar 15 min , triturar y colar."}, {"nombre": "TARTA DE PISTACHO", "contenido": "190gr de pistacho, 175gr de azucar, 400gr de queso, 600gr de nata, 220 gr de huevos,\nThermo a 55º v6 horno 190º 6 min"}, {"nombre": "TARTA COCOLATE BLANCO", "contenido": "300ge de queso, 400gr choco blanco, 125 azucar, 600gr de nata, 360gr de huevo,\nThermo a 55º v2,5 horno 145º 16 min"}, {"nombre": "TARTA CHOCOLATE BLANCO (NUEVA)", "contenido": "260ge de queso, 350gr choco blanco, 110 azucar, 570gr de nata, 350gr de huevo, 4.36 sal\nThermo a 105º v3 horno 145º 16 min"}, {"nombre": "TARTA COCOLATE NEGRO", "contenido": "495gr chocolate, 480gr mantequilla, 390gr huevo, 390gr de azucar, 120 gr harina tamizada.\nhorno 200º 8 min\nX4--- 1980 - 1920 - 1560 - 1560 - 480\nX6--- 2970 – 2880 – 2340 – 2340 - 720"}, {"nombre": "TARTA QUESO HORNEADA", "contenido": "600 gr de queso, 80 gr de idiazabal, 650 gr de nata, 200 gr azucar, 3 huevos\nThermo a 55º v2,5 horno 235º 4 min"}, {"nombre": "NATILLAS", "contenido": "2400gr de leche, 600gr de nata, 360gr de azucar, rama vainilla, 30 yemas.\nInfusionar leche+ nata+vainilla+azucar, cuando enfrie, añadir yemas y mezclar bien. Bolsa de\n180/200gr 81º 35 min desde frio"}, {"nombre": "TARTA OREO", "contenido": "200gr de oreo, 170 gr azucar, 600gr queso, 300gr de huevo (Thermo a 65º v2,5 horno 200º 6 min)"}, {"nombre": "ARROZ CON LECHE", "contenido": "3 l leche, 750gr nata, 360gr de azucar, 300gr de arroz, 4 yemas, 20gr choco blanco, 1 rama de canela\ncorteza de naranja y limon."}, {"nombre": "MOUSE DE CHOCOLATE", "contenido": "190gr de chocolate, 8 gr de cacao, 50 gr de azucar, 500gr de nata, 200 gr de leche."}, {"nombre": "LEMON PIE", "contenido": "180 gr de azucar, 240 gr de zumo de limon, rayadura de los limones, 12 huevos (720gr) 160gr de\nmargarina.\n100º v3,5"}, {"nombre": "MERENGUE", "contenido": "390gr de azucar, 26 gr de albumina, 80 gr de agua, 110 gr de clara, puntita de santana,\n40º v3,5"}, {"nombre": "FLAN DE QUESO (17)", "contenido": "1 litro de leche, 500gr nata, 350 queso crema, 200 gr de azucar, 10 gr de cuajo,\n5 seg a v6 , 15 min 85º v2,5"}, {"nombre": "SIFON DE FRESA", "contenido": "700gr de pulpa, 300gr de agua, 40 gramos de proespuma caliente, 37º cuando este licuado colar y a\nsifon."}, {"nombre": "SOUFLE", "contenido": "625gr de agua, 63gr prosufle, 400gr de cobertura, 20 gr cacao, 200gr azucar.\nAgua y prosoufle varillar y poner a punto de nieve, añadir el azucar en tres veces\nPoner la cobertura al baño maria con el cacao tamizado,\nCuando este a punto de nieve, añadir un cuarto de la cobertura y mezclar con la varilla\nEl resto añadirlo haciendo movimientos envolventes"}, {"nombre": "NATA SIFON", "contenido": "440gr de nata, 60gr azucar"}, {"nombre": "CRUMBLE", "contenido": "1kg harina, 1kg harina almenra, 1kg azucar, 1kg mantequilla"}, {"nombre": "BLONDE", "contenido": "225gr de choco blanco, 3 huevos, 80gr azucar, 20gr azucar de vainilla, 90gr de harina,\n1.- fundir choco+ mantequilla. 2 .- batir huevos y azucar,\n3.- mezclar lo anterior, 4.- añadir harina tamizada.\n15min a 180º+tiro cerrado+sin ventilador.\n15min a 180º+tiro cerrado +tapado con albal.\n15/20 min a 130º+tiro abierto+sin ventilador+destapado"}, {"nombre": "TARTA QUESO FLUIDA", "contenido": "450gr de queso crema, 80 gr de idiazabal, 200gr de azucar, 750 de gr leche y 12 gr gelatina en polvo\nhidratada,\nCuando enfrie la mezcla varillar hasta que quede fino y añadir 865 de nata montada . Mezclar bien y a\nmanga pastelera."}].map(r => Object.assign({id: uid()}, r)));
+function persistRecetas(){ DB.set('recetas', recetas); sbSet('recetas', recetas); }
+
+let recetaAbierta = null;
+let recetaEditando = null;
+let recetaFiltro = '';
+
+function renderRecetas(){
+  const filtro = recetaFiltro.trim().toLowerCase();
+  const lista = recetas
+    .filter(r => !filtro || r.nombre.toLowerCase().includes(filtro))
+    .slice()
+    .sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+  return `
+    <div class="card" style="background:var(--butter-light); border:none;">
+      <div style="font-size:13px; color:#6b5620;">Recetario del restaurante. Toca una receta para verla, editarla o enviarla.</div>
+    </div>
+    <div class="toolbar receta-search">
+      <input type="text" placeholder="Buscar receta..." value="${recetaFiltro}" oninput="recetaFiltro=this.value; renderAll();" style="flex:1;">
+      <button class="btn btn-add" onclick="addReceta()">+ Nueva receta</button>
+    </div>
+    ${lista.length===0 ? `<div class="empty-hint">No se ha encontrado ninguna receta.</div>` : ''}
+    ${lista.map(r => renderRecetaItem(r)).join('')}
+  `;
+}
+
+function renderRecetaItem(r){
+  const abierta = recetaAbierta === r.id;
+  const editando = recetaEditando === r.id;
+  const nombreBonito = r.nombre.charAt(0).toUpperCase() + r.nombre.slice(1).toLowerCase();
+  return `
+    <div class="receta-item ${abierta?'open':''}">
+      <div class="receta-head" onclick="toggleReceta('${r.id}')">
+        <span class="ic-bubble">🍽️</span>
+        <span class="nombre">${nombreBonito}</span>
+        <span class="chev">${abierta ? '▲' : '▼'}</span>
+      </div>
+      ${abierta ? `
+        <div class="receta-body">
+          ${editando ? `
+            <div class="receta-edit">
+              <input type="text" id="edit-nombre-${r.id}" value="${r.nombre}">
+              <textarea id="edit-contenido-${r.id}" style="min-height:160px;">${r.contenido}</textarea>
+            </div>
+            <div class="receta-toolbar">
+              <button class="btn btn-add btn-sm" onclick="guardarReceta('${r.id}')">💾 Guardar</button>
+              <button class="btn btn-ghost btn-sm" onclick="recetaEditando=null; renderAll();">Cancelar</button>
+            </div>
+          ` : `
+            <div class="receta-contenido">${r.contenido || '(sin contenido todavía)'}</div>
+            <div class="receta-toolbar">
+              <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); recetaEditando='${r.id}'; renderAll();">✏️ Editar</button>
+              <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); enviarReceta('${r.id}')">📄 PDF / Imprimir</button>
+              <button class="btn-del" onclick="event.stopPropagation(); delReceta('${r.id}')">🗑</button>
+            </div>
+          `}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function toggleReceta(id){
+  recetaAbierta = (recetaAbierta === id) ? null : id;
+  recetaEditando = null;
+  renderAll();
+}
+function addReceta(){
+  const nueva = {id:uid(), nombre:'NUEVA RECETA', contenido:''};
+  recetas.push(nueva);
+  persistRecetas();
+  recetaAbierta = nueva.id;
+  recetaEditando = nueva.id;
+  renderAll();
+}
+function guardarReceta(id){
+  const r = recetas.find(x=>x.id===id);
+  const nombreEl = document.getElementById('edit-nombre-'+id);
+  const contenidoEl = document.getElementById('edit-contenido-'+id);
+  r.nombre = (nombreEl.value || 'SIN NOMBRE').trim().toUpperCase();
+  r.contenido = contenidoEl.value;
+  persistRecetas();
+  recetaEditando = null;
+  renderAll();
+}
+function delReceta(id){
+  recetas = recetas.filter(r=>r.id!==id);
+  persistRecetas();
+  if(recetaAbierta===id) recetaAbierta = null;
+  renderAll();
+}
+function enviarReceta(id){
+  const r = recetas.find(x=>x.id===id);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('Restaurante Begoña — Recetario', 14, y); y += 10;
+  doc.setFontSize(17);
+  doc.text(r.nombre, 14, y); y += 10;
+  doc.setDrawColor(200); doc.line(14, y, 196, y); y += 8;
+  doc.setFont('helvetica','normal'); doc.setFontSize(11.5);
+  const lineas = doc.splitTextToSize(r.contenido || '(sin contenido)', 180);
+  lineas.forEach(linea => {
+    if(y > 280){ doc.addPage(); y = 20; }
+    doc.text(linea, 14, y);
+    y += 6.5;
+  });
+  doc.save(`receta_${r.nombre.replace(/\s+/g,'_').toLowerCase()}.pdf`);
+}
+
 /* ================= HORARIO state ================= */
 let empleados = DB.get('horario_empleados', [
   {id:uid(), nombre:'Martin Uribarri'},
@@ -819,7 +967,7 @@ function getMonthRows(empId, y, m){
   if(!turnos[empId][key]){
     const n = daysInMonth(y,m);
     turnos[empId][key] = Array.from({length:n}, (_,i)=>({id:uid(), dia:i+1, entM:'',salM:'',horasM:'',entN:'',salN:'',horasN:''}));
-    persistTurnos();
+    if(cloudSyncDone){ persistTurnos(); } else { DB.set('horario_turnos', turnos); }
   }
   return turnos[empId][key];
 }
@@ -1169,8 +1317,10 @@ function renderAll(){
   if(currentApp==='appcc'){
     const renderers = { temps:renderTemps, diario:renderDiario, camaras:renderCamaras, limpieza:renderLimpieza, anual:renderAnual, manip:renderManip, prov:renderProv };
     main.innerHTML = renderers[activeAppccTab]();
-  } else {
+  } else if(currentApp==='horario'){
     main.innerHTML = renderHorario();
+  } else if(currentApp==='recetas'){
+    main.innerHTML = renderRecetas();
   }
 }
 
