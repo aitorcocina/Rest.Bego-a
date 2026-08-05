@@ -883,7 +883,7 @@ function renderRecetaItem(r){
             <div class="receta-contenido">${r.contenido || '(sin contenido todavía)'}</div>
             <div class="receta-toolbar">
               <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); recetaEditando='${r.id}'; renderAll();">✏️ Editar</button>
-              <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); enviarReceta('${r.id}')">📄 PDF / Imprimir</button>
+              <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); enviarReceta('${r.id}')">📤 Enviar / Imprimir</button>
               <button class="btn-del" onclick="event.stopPropagation(); delReceta('${r.id}')">🗑</button>
             </div>
           `}
@@ -922,7 +922,7 @@ function delReceta(id){
   if(recetaAbierta===id) recetaAbierta = null;
   renderAll();
 }
-function enviarReceta(id){
+async function enviarReceta(id){
   const r = recetas.find(x=>x.id===id);
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -939,7 +939,24 @@ function enviarReceta(id){
     doc.text(linea, 14, y);
     y += 6.5;
   });
-  doc.save(`receta_${r.nombre.replace(/\s+/g,'_').toLowerCase()}.pdf`);
+
+  const nombreArchivo = `receta_${r.nombre.replace(/\s+/g,'_').toLowerCase()}.pdf`;
+  const blob = doc.output('blob');
+
+  // Móvil: abre directamente el panel de compartir (WhatsApp, email, imprimir...) sin descargar nada.
+  if(navigator.canShare){
+    try{
+      const file = new File([blob], nombreArchivo, {type:'application/pdf'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title:r.nombre});
+        return;
+      }
+    }catch(e){ /* si cancela el share, no hacemos nada más */ return; }
+  }
+
+  // Escritorio (sin Web Share): abre el PDF en una pestaña nueva para poder imprimirlo o guardarlo desde ahí, sin forzar descarga.
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
 }
 
 /* ================= HORARIO state ================= */
