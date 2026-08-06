@@ -862,7 +862,7 @@ function renderRecetaItem(r){
   const editando = recetaEditando === r.id;
   const nombreBonito = r.nombre.charAt(0).toUpperCase() + r.nombre.slice(1).toLowerCase();
   return `
-    <div class="receta-item ${abierta?'open':''}">
+    <div class="receta-item ${abierta?'open':''}" id="receta-${r.id}">
       <div class="receta-head" onclick="toggleReceta('${r.id}')">
         <span class="ic-bubble">🍽️</span>
         <span class="nombre">${nombreBonito}</span>
@@ -902,9 +902,14 @@ function addReceta(){
   const nueva = {id:uid(), nombre:'NUEVA RECETA', contenido:''};
   recetas.push(nueva);
   persistRecetas();
+  recetaFiltro = '';
   recetaAbierta = nueva.id;
   recetaEditando = nueva.id;
   renderAll();
+  setTimeout(() => {
+    const el = document.getElementById('receta-'+nueva.id);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 50);
 }
 function guardarReceta(id){
   const r = recetas.find(x=>x.id===id);
