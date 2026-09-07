@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
   :root{
     --cream:#FBF7F1; --card:#FFFFFF; --ink:#3E3A34; --muted:#8B8579; --border:#EAE3D5;
@@ -46,6 +47,23 @@
   .app-switch button.active.horario{background:var(--sky); border-color:transparent;}
   .app-switch button.active.escandallos{background:var(--mint); border-color:transparent;}
   .app-switch button.active.recetas{background:var(--butter); border-color:transparent;}
+  .app-switch button.active.facturas{background:var(--rose); border-color:transparent;}
+
+  /* Facturas */
+  .fac-empresa-card{background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; overflow:hidden;}
+  .fac-empresa-head{display:flex; align-items:center; justify-content:space-between; padding:13px 14px; cursor:pointer; gap:8px;}
+  .fac-empresa-head .nombre{font-weight:700; font-size:14.5px; flex:1;}
+  .fac-empresa-head .count{font-size:11.5px; color:var(--muted); background:var(--rose-light); border-radius:999px; padding:3px 9px; font-weight:700; white-space:nowrap;}
+  .fac-lista{display:none; padding:0 14px 12px;}
+  .fac-lista.open{display:block;}
+  .fac-item{display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px dashed var(--border);}
+  .fac-item .ic{font-size:18px; flex:0 0 auto;}
+  .fac-item .info{flex:1; min-width:0;}
+  .fac-item .fecha{font-weight:700; font-size:13px;}
+  .fac-item .importe{font-size:12px; color:var(--muted);}
+  .fac-item .acciones{display:flex; gap:6px; flex:0 0 auto;}
+  .fac-mini-btn{border:none; background:var(--sky-light); color:#2c5570; border-radius:8px; padding:6px 9px; font-size:12px; cursor:pointer; font-weight:600;}
+  .fac-month-count{background:var(--rose-light); color:#8A4650; border-radius:12px; padding:10px 14px; text-align:center; font-weight:700; margin-bottom:12px;}
 
   .plato-card .plato-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
   .plato-name{font-weight:700; font-size:16px;}
@@ -226,6 +244,7 @@
     <button id="btn-appcc" class="active appcc" onclick="setApp('appcc')"><span class="ic">🧾</span>Control APPCC</button>
     <button id="btn-horario" class="horario" onclick="setApp('horario')"><span class="ic">🕒</span>Control Horario</button>
     <button id="btn-recetas" class="recetas" onclick="setApp('recetas')"><span class="ic">📖</span>Recetas</button>
+    <button id="btn-facturas" class="facturas" onclick="setApp('facturas')"><span class="ic">🧾</span>Facturas</button>
   </div>
 
   <nav class="tabs" id="tabs"></nav>
@@ -301,7 +320,7 @@ function getLocalValue(key){
   const map = {
     appcc_temps: appcc.temps, appcc_diario: appcc.diario, appcc_camaras: appcc.camaras,
     appcc_limpieza: appcc.limpieza, appcc_anual: appcc.anual, appcc_manip: appcc.manip, appcc_prov: appcc.prov,
-    horario_empleados: empleados, horario_turnos: turnos, recetas: recetas,
+    horario_empleados: empleados, horario_turnos: turnos, recetas: recetas, facturas: facturas,
   };
   return map[key];
 }
@@ -316,6 +335,7 @@ function applyCloudValue(key, value){
   else if(key==='horario_empleados') empleados = value;
   else if(key==='horario_turnos') turnos = value;
   else if(key==='recetas') recetas = value;
+  else if(key==='facturas') facturas = value;
   DB.set(key, value);
 }
 function isNonEmptyValue(v){
@@ -325,7 +345,7 @@ function isNonEmptyValue(v){
   return !!v;
 }
 async function initCloudSync(){
-  const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos','recetas'];
+  const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos','recetas','facturas'];
   // Estas tres secciones las gestionan tareas automáticas en Supabase (cron). Ningún dispositivo
   // debe poder "sembrar" ni sobrescribir su contenido inicial nunca: solo se leen, jamás se empujan.
   const soloLectura = new Set(['appcc_temps','appcc_diario','appcc_camaras']);
@@ -358,8 +378,9 @@ function setApp(app){
   document.getElementById('btn-appcc').classList.toggle('active', app==='appcc');
   document.getElementById('btn-horario').classList.toggle('active', app==='horario');
   document.getElementById('btn-recetas').classList.toggle('active', app==='recetas');
-  const titles = { appcc:'Control APPCC', horario:'Control Horario', recetas:'Recetas' };
-  const subs = { appcc:'Registro diario de higiene y seguridad alimentaria', horario:'Registro mensual de turnos del equipo', recetas:'Recetario del restaurante, siempre a mano' };
+  document.getElementById('btn-facturas').classList.toggle('active', app==='facturas');
+  const titles = { appcc:'Control APPCC', horario:'Control Horario', recetas:'Recetas', facturas:'Facturas' };
+  const subs = { appcc:'Registro diario de higiene y seguridad alimentaria', horario:'Registro mensual de turnos del equipo', recetas:'Recetario del restaurante, siempre a mano', facturas:'Todas las facturas, organizadas y listas para imprimir' };
   document.getElementById('mainTitle').textContent = titles[app];
   document.getElementById('mainSub').textContent = subs[app];
   renderAll();
@@ -964,6 +985,248 @@ async function enviarReceta(id){
   window.open(url, '_blank');
 }
 
+/* ================= FACTURAS state ================= */
+const FACTURAS_BUCKET = 'facturas';
+const FACTURAS_TABS = [
+  {id:'anadir',   label:'Añadir',              icon:'➕', color:'rose'},
+  {id:'empresas', label:'Por empresa',         icon:'🏢', color:'clay'},
+  {id:'meses',    label:'Por mes / Imprimir',  icon:'🖨️', color:'sky'},
+];
+let facturas = DB.get('facturas', []);
+let activeFacturasTab = 'anadir';
+let facYear = new Date().getFullYear();
+let facMonth = new Date().getMonth();
+let facEmpresaAbierta = null;
+let facBusqueda = '';
+let facSubiendo = false;
+let facImprimiendo = false;
+let facNuevaEmpresa = '';
+let facNuevaFecha = '';
+let facNuevoImporte = '';
+
+function persistFacturas(){ DB.set('facturas', facturas); sbSet('facturas', facturas); }
+
+function normaliza(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+function empresasUnicas(){
+  const set = new Set();
+  facturas.forEach(f => { if(f.empresa) set.add(f.empresa); });
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'es'));
+}
+
+function iconoFactura(f){ return (f.archivoTipo||'').includes('pdf') ? '📄' : '🖼️'; }
+
+function fmtImporte(n){
+  if(n===null || n===undefined || isNaN(n)) return '';
+  return Number(n).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+
+function facturasDelMes(y,m){
+  return facturas.filter(f=>{
+    if(!f.fecha) return false;
+    const [fy,fm] = f.fecha.split('-').map(Number);
+    return fy===y && fm===(m+1);
+  }).sort((a,b)=> a.fecha.localeCompare(b.fecha));
+}
+
+async function subirFactura(input){
+  const file = input.files[0];
+  if(!file) return;
+  const empresa = (facNuevaEmpresa||'').trim();
+  const fecha = facNuevaFecha;
+  if(!empresa){ alert('Escribe primero el nombre de la empresa.'); input.value=''; return; }
+  if(!fecha){ alert('Elige primero la fecha de la factura.'); input.value=''; return; }
+  facSubiendo = true; renderAll();
+  const id = uid();
+  const path = `${id}_${Date.now()}_${encodeURIComponent(file.name)}`;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${FACTURAS_BUCKET}/${path}`, {
+      method:'POST',
+      headers: sbHeaders({ 'Content-Type': file.type || 'application/octet-stream' }),
+      body: file
+    });
+    if(!res.ok) throw new Error('Fallo al subir: '+res.status);
+    facturas.push({
+      id, empresa, fecha,
+      importe: facNuevoImporte!=='' ? parseFloat(facNuevoImporte) : null,
+      archivoUrl: `${SUPABASE_URL}/storage/v1/object/public/${FACTURAS_BUCKET}/${path}`,
+      archivoName: file.name, archivoTipo: file.type || '', creado: Date.now()
+    });
+    persistFacturas();
+    facNuevaEmpresa=''; facNuevaFecha=''; facNuevoImporte='';
+  }catch(e){
+    alert('No se ha podido subir la factura. Comprueba que el bucket "facturas" existe en Supabase, es público, y que has ejecutado las políticas SQL indicadas.');
+  }
+  facSubiendo = false;
+  renderAll();
+}
+
+function delFactura(id){
+  if(!confirm('¿Borrar esta factura? No se puede deshacer.')) return;
+  facturas = facturas.filter(f=>f.id!==id);
+  persistFacturas(); renderAll();
+}
+
+function cambiarFacMonth(delta){
+  facMonth += delta;
+  if(facMonth<0){ facMonth=11; facYear--; }
+  if(facMonth>11){ facMonth=0; facYear++; }
+  renderAll();
+}
+
+/* ---- Render: Añadir ---- */
+function renderFacturasAnadir(){
+  const empresasDatalist = empresasUnicas();
+  return `
+    ${sectionHead('Añadir factura','rose')}
+    <div class="card">
+      <div class="row-grid two-col-desktop" style="grid-template-columns:1fr 1fr;">
+        <div>
+          <label class="field-label">Empresa</label>
+          <input type="text" list="empresas-lista" placeholder="Nombre de la empresa" value="${(facNuevaEmpresa||'').replace(/"/g,'&quot;')}" oninput="facNuevaEmpresa=this.value">
+          <datalist id="empresas-lista">${empresasDatalist.map(e=>`<option value="${e.replace(/"/g,'&quot;')}">`).join('')}</datalist>
+        </div>
+        <div>
+          <label class="field-label">Fecha de la factura</label>
+          <input type="date" value="${facNuevaFecha||''}" onchange="facNuevaFecha=this.value">
+        </div>
+      </div>
+      <div class="row-grid" style="grid-template-columns:1fr; margin-top:4px;">
+        <div>
+          <label class="field-label">Importe (opcional)</label>
+          <input type="number" step="0.01" placeholder="0,00" value="${facNuevoImporte||''}" oninput="facNuevoImporte=this.value">
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label class="file-btn" style="background:var(--rose-light); color:#8A4650;">
+          ${facSubiendo ? 'Subiendo...' : '📎 Elegir archivo (PDF o foto) y guardar'}
+          <input type="file" accept="application/pdf,image/*" capture="environment" onchange="subirFactura(this)" ${facSubiendo?'disabled':''}>
+        </label>
+      </div>
+      <div style="font-size:12px; color:var(--muted); margin-top:10px;">Rellena empresa y fecha, luego elige el archivo: se sube y se guarda automáticamente.</div>
+    </div>
+  `;
+}
+
+/* ---- Render: Por empresa ---- */
+function renderFacturasEmpresas(){
+  const empresas = empresasUnicas();
+  const q = normaliza(facBusqueda);
+  const filtradas = q ? empresas.filter(e=>normaliza(e).includes(q)) : empresas;
+  return `
+    ${sectionHead('Por empresa','rose')}
+    <div class="card" style="padding:10px 12px;">
+      <input type="text" placeholder="Buscar empresa..." value="${(facBusqueda||'').replace(/"/g,'&quot;')}" oninput="facBusqueda=this.value; renderAll();">
+    </div>
+    ${filtradas.length===0 ? `<div class="empty-hint">${empresas.length===0 ? 'Todavía no has añadido ninguna factura.' : 'No hay empresas que coincidan con la búsqueda.'}</div>` : ''}
+    ${filtradas.map(emp=>{
+      const items = facturas.filter(f=>f.empresa===emp).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      const abierta = facEmpresaAbierta===emp;
+      return `
+        <div class="fac-empresa-card">
+          <div class="fac-empresa-head" onclick="facEmpresaAbierta = ${abierta?'null':`'${emp.replace(/'/g,"\\'")}'`}; renderAll();">
+            <span class="nombre">🏢 ${emp}</span>
+            <span class="count">${items.length} factura${items.length===1?'':'s'}</span>
+            <span class="chev">${abierta?'▲':'▼'}</span>
+          </div>
+          <div class="fac-lista ${abierta?'open':''}">
+            ${items.map(f=>`
+              <div class="fac-item">
+                <span class="ic">${iconoFactura(f)}</span>
+                <div class="info">
+                  <div class="fecha">${f.fecha}</div>
+                  ${f.importe?`<div class="importe">${fmtImporte(f.importe)}</div>`:''}
+                </div>
+                <div class="acciones">
+                  <button class="fac-mini-btn" onclick="verPdf('${f.archivoUrl}','${(f.archivoName||'Factura').replace(/'/g,"\\'")}')">👁️ Ver</button>
+                  <button class="btn-del" style="width:30px;height:30px;font-size:13px;" onclick="delFactura('${f.id}')">🗑</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+/* ---- Render: Por mes / Imprimir ---- */
+function renderFacturasMeses(){
+  const items = facturasDelMes(facYear, facMonth);
+  return `
+    ${sectionHead('Por mes / Imprimir','rose')}
+    <div class="month-nav">
+      <button onclick="cambiarFacMonth(-1)">←</button>
+      <div class="label"><h2>${MESES[facMonth]} ${facYear}</h2></div>
+      <button onclick="cambiarFacMonth(1)">→</button>
+    </div>
+    <div class="fac-month-count">${items.length} factura${items.length===1?'':'s'} en ${MESES[facMonth].toLowerCase()}</div>
+    ${items.length>0 ? `<div style="margin-bottom:14px;"><button class="btn btn-add" onclick="imprimirFacturasMes()" ${facImprimiendo?'disabled':''}>${facImprimiendo?'Generando PDF...':'🖨️ Imprimir todas ('+items.length+')'}</button></div>` : ''}
+    ${items.length===0 ? `<div class="empty-hint">No hay facturas guardadas de este mes.</div>` : ''}
+    ${items.map(f=>`
+      <div class="card" style="display:flex; align-items:center; gap:10px;">
+        <span class="ic" style="font-size:20px;">${iconoFactura(f)}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700; font-size:14px;">${f.empresa}</div>
+          <div style="font-size:12px; color:var(--muted);">${f.fecha}${f.importe?' · '+fmtImporte(f.importe):''}</div>
+        </div>
+        <button class="fac-mini-btn" onclick="verPdf('${f.archivoUrl}','${(f.archivoName||'Factura').replace(/'/g,"\\'")}')">👁️ Ver</button>
+      </div>
+    `).join('')}
+  `;
+}
+
+async function imprimirFacturasMes(){
+  const items = facturasDelMes(facYear, facMonth);
+  if(items.length===0) return;
+  facImprimiendo = true; renderAll();
+  try{
+    const { PDFDocument } = PDFLib;
+    const merged = await PDFDocument.create();
+    for(const f of items){
+      const res = await fetch(f.archivoUrl);
+      if(!res.ok) continue;
+      const bytes = await res.arrayBuffer();
+      const esPdf = (f.archivoTipo||'').includes('pdf') || (f.archivoName||'').toLowerCase().endsWith('.pdf');
+      if(esPdf){
+        const src = await PDFDocument.load(bytes, {ignoreEncryption:true});
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach(p=>merged.addPage(p));
+      } else {
+        let img;
+        try{ img = await merged.embedJpg(bytes); }catch(e){ img = await merged.embedPng(bytes); }
+        const page = merged.addPage([img.width, img.height]);
+        page.drawImage(img, {x:0, y:0, width:img.width, height:img.height});
+      }
+    }
+    const pdfBytes = await merged.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const nombreArchivo = `Facturas_${MESES[facMonth]}_${facYear}.pdf`;
+
+    if(navigator.canShare){
+      try{
+        const file = new File([blob], nombreArchivo, {type:'application/pdf'});
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({files:[file], title:nombreArchivo});
+          facImprimiendo = false; renderAll();
+          return;
+        }
+      }catch(e){ facImprimiendo = false; renderAll(); return; }
+    }
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }catch(e){
+    alert('No se ha podido generar el PDF combinado. Revisa tu conexión e inténtalo de nuevo.');
+  }
+  facImprimiendo = false; renderAll();
+}
+
+function renderFacturas(){
+  if(activeFacturasTab==='anadir') return renderFacturasAnadir();
+  if(activeFacturasTab==='empresas') return renderFacturasEmpresas();
+  return renderFacturasMeses();
+}
+
 /* ================= HORARIO state ================= */
 let empleados = DB.get('horario_empleados', [
   {id:uid(), nombre:'Martin Uribarri'},
@@ -1324,13 +1587,23 @@ function renderExportBar(){
 /* ================= Render dispatcher ================= */
 function renderTabs(){
   const nav = document.getElementById('tabs');
-  if(currentApp!=='appcc'){ nav.innerHTML=''; return; }
-  nav.innerHTML = APPCC_TABS.map(t => `
-    <button data-tab="${t.id}" class="${activeAppccTab===t.id?'active':''}" style="${activeAppccTab===t.id?`background:var(--${t.color});`:''}">
-      <span>${t.icon}</span><span>${t.label}</span>
-    </button>
-  `).join('');
-  nav.querySelectorAll('button').forEach(b=>{ b.onclick = () => { activeAppccTab = b.dataset.tab; renderAll(); }; });
+  if(currentApp==='appcc'){
+    nav.innerHTML = APPCC_TABS.map(t => `
+      <button data-tab="${t.id}" class="${activeAppccTab===t.id?'active':''}" style="${activeAppccTab===t.id?`background:var(--${t.color});`:''}">
+        <span>${t.icon}</span><span>${t.label}</span>
+      </button>
+    `).join('');
+    nav.querySelectorAll('button').forEach(b=>{ b.onclick = () => { activeAppccTab = b.dataset.tab; renderAll(); }; });
+  } else if(currentApp==='facturas'){
+    nav.innerHTML = FACTURAS_TABS.map(t => `
+      <button data-tab="${t.id}" class="${activeFacturasTab===t.id?'active':''}" style="${activeFacturasTab===t.id?`background:var(--${t.color});`:''}">
+        <span>${t.icon}</span><span>${t.label}</span>
+      </button>
+    `).join('');
+    nav.querySelectorAll('button').forEach(b=>{ b.onclick = () => { activeFacturasTab = b.dataset.tab; renderAll(); }; });
+  } else {
+    nav.innerHTML='';
+  }
 }
 function renderAll(){
   renderTabs();
@@ -1343,6 +1616,8 @@ function renderAll(){
     main.innerHTML = renderHorario();
   } else if(currentApp==='recetas'){
     main.innerHTML = renderRecetas();
+  } else if(currentApp==='facturas'){
+    main.innerHTML = renderFacturas();
   }
 }
 
