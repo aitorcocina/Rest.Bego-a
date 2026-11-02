@@ -407,13 +407,15 @@ function isNonEmptyValue(v){
 }
 async function initCloudSync(){
   const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos','recetas','facturas'];
-  // Estas tres secciones las gestionan tareas automáticas en Supabase (cron). Ningún dispositivo
+  // Estas secciones las gestionan tareas automáticas en Supabase (cron). Ningún dispositivo
   // debe poder "sembrar" ni sobrescribir su contenido inicial nunca: solo se leen, jamás se empujan.
-  const soloLectura = new Set(['appcc_temps','appcc_diario','appcc_camaras']);
+  const soloLectura = new Set(['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza']);
   try{
     const rows = await sbGetAll();
     const cloudMap = {};
     rows.forEach(r => cloudMap[r.key] = r.value);
+    // Copias anuales que guarda el cron cada 10 de noviembre (la más reciente, primero).
+    copiasAppcc = rows.filter(r => /^appcc_backup_\d{4}$/.test(r.key) && r.value).map(r => r.value).sort((a,b) => b.anio - a.anio);
     allKeys.forEach(k => {
       if(cloudMap[k] !== undefined && cloudMap[k] !== null){
         applyCloudValue(k, cloudMap[k]);
@@ -432,6 +434,7 @@ async function initCloudSync(){
   renderAll();
 }
 
+let copiasAppcc = [];
 let currentApp = 'inicio';
 let cloudSyncDone = false;
 let isLocked = false;
@@ -720,7 +723,7 @@ function renderLimpieza(){
   return `
     ${sectionHead('Control de limpieza','sage')}
     <div class="card" style="background:var(--sage-light); border:none;">
-      <div style="font-size:13px; color:#3d5c37;">Marca el mes cuando se haya realizado la limpieza de cada elemento. Los elementos con 🔒 son fijos y no se pueden eliminar, solo añadir nuevos.</div>
+      <div style="font-size:13px; color:#3d5c37;">El mes se marca solo el día 1 de cada mes, de marzo a noviembre. Si un mes no se ha hecho, quita la marca. Los elementos con 🔒 son fijos y no se pueden eliminar, solo añadir nuevos.</div>
     </div>
     ${renderLimpiezaCat('elementos','Elementos / Utillaje')}
     ${renderLimpiezaCat('maquinaria','Maquinaria')}
@@ -1537,9 +1540,14 @@ function exportPDFFor(empId){
 }
 
 /* ---- Informe completo APPCC en PDF (por departamentos, para inspección de Sanidad) ---- */
-function exportAppccPDF(){
+// Sin parámetro: informe del mes que se está viendo. Con una copia anual: toda la temporada de marzo a octubre.
+async function exportAppccPDF(copia){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
+  const datos = copia || appcc;
+  const anio = copia ? copia.anio : calYear;
+  const meses = copia ? [2,3,4,5,6,7,8,9] : [calMonth];
+  const periodo = copia ? `Marzo a octubre de ${anio}` : `${MESES[calMonth]} ${calYear}`;
   const pageH = 290;
   let y = 20;
 
@@ -1552,7 +1560,7 @@ function exportAppccPDF(){
     doc.setFontSize(13); doc.setFont('helvetica','normal');
     doc.text('Informe de Control APPCC', 14, y); y+=6;
     doc.setFontSize(10); doc.setTextColor(120);
-    doc.text('Generado el ' + new Date().toLocaleDateString('es-ES'), 14, y);
+    doc.text(copia ? `Temporada: marzo a octubre de ${anio}` : 'Generado el ' + new Date().toLocaleDateString('es-ES'), 14, y);
     doc.setTextColor(0); y+=12;
   }
   function deptHeader(title){
@@ -1565,9 +1573,11 @@ function exportAppccPDF(){
     doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
   }
   function line(text){
-    checkPage(6);
-    doc.text(text, 14, y);
-    y += 5.5;
+    doc.splitTextToSize(text, 182).forEach(trozo => {
+      checkPage(6);
+      doc.text(trozo, 14, y);
+      y += 5.5;
+    });
   }
   function smallNote(text){
     checkPage(6);
@@ -1577,32 +1587,38 @@ function exportAppccPDF(){
     y += 5.5;
   }
 
+  function registrosPorMes(seccion, tieneDatos, pintar){
+    meses.forEach(m => {
+      if(copia){
+        checkPage(8);
+        doc.setFont('helvetica','bold'); doc.text(MESES[m], 14, y); y+=5.5;
+        doc.setFont('helvetica','normal');
+      }
+      const filas = (seccion[monthKey(anio,m)] || []).filter(tieneDatos);
+      if(filas.length===0){ smallNote('Sin registros este mes.'); }
+      filas.forEach(pintar);
+      if(copia) y += 2;
+    });
+  }
+
   coverTitle();
 
   // Temperaturas
-  deptHeader(`1. Temperatura de productos recibidos — ${MESES[calMonth]} ${calYear}`);
-  const tRows = appcc.temps[monthKey(calYear,calMonth)] || [];
-  const tFilled = tRows.filter(r => r.producto || r.temp!=null);
-  if(tFilled.length===0){ smallNote('Sin registros este mes.'); }
-  tFilled.forEach(r => line(`Día ${r.dia}: ${r.producto||'-'}  |  ${r.temp!=null?r.temp+' °C':'-'}`));
+  deptHeader(`1. Temperatura de productos recibidos — ${periodo}`);
+  registrosPorMes(datos.temps, r => r.producto || r.temp!=null,
+    r => line(`Día ${r.dia}: ${r.producto||'-'}  |  ${r.temp!=null?r.temp+' °C':'-'}`));
   y += 4;
 
   // Diario
-  deptHeader(`2. Control diario de cocción — ${MESES[calMonth]} ${calYear}`);
-  const dRows = appcc.diario[monthKey(calYear,calMonth)] || [];
-  const dFilled = dRows.filter(r => r.fritura||r.horneado||r.vapor||r.plancha||r.cambioAceite);
-  if(dFilled.length===0){ smallNote('Sin registros este mes.'); }
-  dFilled.forEach(r => {
-    line(`Día ${r.dia}: Fritura ${r.fritura||'-'} | Horneado ${r.horneado||'-'} | Vapor ${r.vapor||'-'} | Plancha ${r.plancha||'-'}${r.cambioAceite?' | Cambio de aceite ✔':''}`);
-  });
+  deptHeader(`2. Control diario de cocción — ${periodo}`);
+  registrosPorMes(datos.diario, r => r.fritura||r.horneado||r.vapor||r.plancha||r.cambioAceite,
+    r => line(`Día ${r.dia}: Fritura ${r.fritura||'-'} | Horneado ${r.horneado||'-'} | Vapor ${r.vapor||'-'} | Plancha ${r.plancha||'-'}${r.cambioAceite?' | Cambio de aceite':''}`));
   y += 4;
 
   // Camaras
-  deptHeader(`3. Temperatura de cámaras — ${MESES[calMonth]} ${calYear}`);
-  const cRows = appcc.camaras[monthKey(calYear,calMonth)] || [];
-  const cFilled = cRows.filter(r => [r.c1,r.c2,r.c3,r.c4,r.c5].some(v=>v!=null));
-  if(cFilled.length===0){ smallNote('Sin registros este mes.'); }
-  cFilled.forEach(r => line(`Día ${r.dia}: C1 ${r.c1??'-'} | C2 ${r.c2??'-'} | C3 ${r.c3??'-'} | C4 ${r.c4??'-'} | C5 ${r.c5??'-'}`));
+  deptHeader(`3. Temperatura de cámaras — ${periodo}`);
+  registrosPorMes(datos.camaras, r => [r.c1,r.c2,r.c3,r.c4,r.c5].some(v=>v!=null),
+    r => line(`Día ${r.dia}: C1 ${r.c1??'-'} | C2 ${r.c2??'-'} | C3 ${r.c3??'-'} | C4 ${r.c4??'-'} | C5 ${r.c5??'-'}`));
   y += 4;
 
   // Limpieza
@@ -1611,8 +1627,8 @@ function exportAppccPDF(){
     checkPage(8);
     doc.setFont('helvetica','bold'); doc.text(label, 14, y); y+=5.5;
     doc.setFont('helvetica','normal');
-    appcc.limpieza[key].forEach(it => {
-      const doneMonths = MESES.filter((m,i)=>it.months[i]).map(m=>m.slice(0,3));
+    datos.limpieza[key].forEach(it => {
+      const doneMonths = MESES.filter((m,i)=>it.months[i] && (!copia || (i>=2 && i<=9))).map(m=>m.slice(0,3));
       line(`${it.name}${it.freq?' ('+it.freq+')':''}: ${doneMonths.length ? doneMonths.join(', ') : 'sin marcar'}`);
     });
     y += 3;
@@ -1620,7 +1636,7 @@ function exportAppccPDF(){
 
   // Anual
   deptHeader('5. Control anual');
-  appcc.anual.bloques.forEach(b => {
+  datos.anual.bloques.forEach(b => {
     checkPage(8);
     doc.setFont('helvetica','bold'); doc.text(b.name, 14, y); y+=5.5;
     doc.setFont('helvetica','normal');
@@ -1630,18 +1646,18 @@ function exportAppccPDF(){
   checkPage(8);
   doc.setFont('helvetica','bold'); doc.text('Incidencias', 14, y); y+=5.5;
   doc.setFont('helvetica','normal');
-  if(appcc.anual.incidencias.length===0){ smallNote('Sin incidencias registradas.'); }
-  appcc.anual.incidencias.forEach(inc => line(`${inc.fecha}: ${inc.texto}`));
+  if(datos.anual.incidencias.length===0){ smallNote('Sin incidencias registradas.'); }
+  datos.anual.incidencias.forEach(inc => line(`${inc.fecha}: ${inc.texto}`));
   y += 4;
 
   // Manipuladores
   deptHeader('6. Manipuladores de alimentos');
-  appcc.manip.forEach(p => line(`${p.nombre}: ${p.pdfUrl ? 'Carnet subido ('+ (p.pdfName||'PDF') +')' : 'Sin carnet subido'}`));
+  datos.manip.forEach(p => line(`${p.nombre}: ${p.pdfUrl ? 'Carnet subido ('+ (p.pdfName||'PDF') +')' : 'Sin carnet subido'}`));
   y += 4;
 
   // Proveedores
   deptHeader('7. Proveedores');
-  appcc.prov.forEach(p => {
+  datos.prov.forEach(p => {
     const vehTxt = p.vehiculo==='muybueno'?'Muy bueno':p.vehiculo==='bueno'?'Bueno':'Malo';
     checkPage(12);
     doc.setFont('helvetica','bold'); doc.text(p.nombre, 14, y); y+=5;
@@ -1652,12 +1668,37 @@ function exportAppccPDF(){
     y += 2;
   });
 
-  doc.save(`APPCC_Restaurante_Begona_${MESES[calMonth]}_${calYear}.pdf`);
+  if(!copia){
+    doc.save(`APPCC_Restaurante_Begona_${MESES[calMonth]}_${calYear}.pdf`);
+    return;
+  }
+
+  // Copia anual: en el móvil abre el panel de compartir; en el ordenador abre el PDF para guardarlo o enviarlo.
+  const blob = doc.output('blob');
+  if(navigator.canShare){
+    try{
+      const file = new File([blob], `APPCC_${anio}.pdf`, {type:'application/pdf'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title:`APPCC ${anio}`});
+        return;
+      }
+    }catch(e){ return; }
+  }
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+function exportCopiaAppcc(anio){
+  const copia = copiasAppcc.find(c => c.anio === anio);
+  if(copia) exportAppccPDF(copia);
 }
 function renderExportBar(){
   const bar = document.getElementById('appccExportBar');
   if(currentApp!=='appcc'){ bar.innerHTML=''; return; }
-  bar.innerHTML = `<button class="btn btn-add" onclick="exportAppccPDF()">📄 Exportar informe completo (PDF)</button>`;
+  bar.innerHTML = `
+    <button class="btn btn-add" onclick="exportAppccPDF()">📄 Exportar informe completo (PDF)</button>
+    ${copiasAppcc.length ? `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+      ${copiasAppcc.map(c => `<button class="btn btn-ghost btn-sm" onclick="exportCopiaAppcc(${c.anio})">📁 APPCC ${c.anio}</button>`).join('')}
+    </div>` : ''}
+  `;
 }
 
 /* ================= Render dispatcher ================= */
