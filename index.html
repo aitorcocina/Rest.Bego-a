@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
   :root{
     --cream:#FBF7F1; --card:#FFFFFF; --ink:#3E3A34; --muted:#8B8579; --border:#EAE3D5;
@@ -44,26 +43,8 @@
   }
   .app-switch button .ic{font-size:16px;}
   .app-switch button.active.appcc{background:var(--sage); border-color:transparent;}
-  .app-switch button.active.horario{background:var(--sky); border-color:transparent;}
   .app-switch button.active.escandallos{background:var(--mint); border-color:transparent;}
   .app-switch button.active.recetas{background:var(--butter); border-color:transparent;}
-  .app-switch button.active.facturas{background:var(--rose); border-color:transparent;}
-
-  /* Facturas */
-  .fac-empresa-card{background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; overflow:hidden;}
-  .fac-empresa-head{display:flex; align-items:center; justify-content:space-between; padding:13px 14px; cursor:pointer; gap:8px;}
-  .fac-empresa-head .nombre{font-weight:700; font-size:14.5px; flex:1;}
-  .fac-empresa-head .count{font-size:11.5px; color:var(--muted); background:var(--rose-light); border-radius:999px; padding:3px 9px; font-weight:700; white-space:nowrap;}
-  .fac-lista{display:none; padding:0 14px 12px;}
-  .fac-lista.open{display:block;}
-  .fac-item{display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px dashed var(--border);}
-  .fac-item .ic{font-size:18px; flex:0 0 auto;}
-  .fac-item .info{flex:1; min-width:0;}
-  .fac-item .fecha{font-weight:700; font-size:13px;}
-  .fac-item .importe{font-size:12px; color:var(--muted);}
-  .fac-item .acciones{display:flex; gap:6px; flex:0 0 auto;}
-  .fac-mini-btn{border:none; background:var(--sky-light); color:#2c5570; border-radius:8px; padding:6px 9px; font-size:12px; cursor:pointer; font-weight:600;}
-  .fac-month-count{background:var(--rose-light); color:#8A4650; border-radius:12px; padding:10px 14px; text-align:center; font-weight:700; margin-bottom:12px;}
 
   /* Portada / Inicio */
   header.top .eyebrow{ cursor:pointer; }
@@ -220,25 +201,6 @@
   .producto-chip button{background:none; border:none; color:#6b4423; cursor:pointer; font-size:12px; padding:0;}
   .add-producto{display:flex; gap:6px; margin-top:8px;}
 
-  /* Horario */
-  .admin-emp-card{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-  .admin-emp-card .name-input{font-weight:700; border:none; background:transparent; padding:2px 0; font-size:15px;}
-  .admin-emp-card .hrs{font-size:12.5px; color:var(--muted);}
-  .badge-flag{font-size:11px; font-weight:700; padding:4px 8px; border-radius:999px; white-space:nowrap;}
-  .flag-ok{background:var(--sage-light); color:#3d5c37;}
-  .flag-low{background:#FBEBDE; color:#8a5a2c;}
-  .flag-high{background:#F7E7E9; color:#8A4650;}
-  .emp-actions{display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;}
-  .emp-toolbar{margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;}
-  .share-box{margin-top:10px; background:var(--sky-light); border-radius:12px; padding:10px;}
-  .share-box input{background:#fff;}
-  .share-box .hint{font-size:11.5px; color:#2c5570; margin-top:6px;}
-
-  .total-card{background:linear-gradient(135deg,var(--peach),var(--butter)); border-radius:18px; padding:20px; text-align:center; color:#4a3520; margin:12px 0;}
-  .total-card .lbl{font-size:12.5px; opacity:.85; font-weight:600;}
-  .total-card .num{font-family:'Fraunces',serif; font-size:38px; font-weight:700; margin:2px 0;}
-  .total-card .unit{font-size:12.5px; opacity:.85;}
-  .total-card .pdf-btn{margin-top:12px; background:#fff; color:#4a3520; border:none; padding:8px 16px; border-radius:999px; font-weight:700; font-size:13px; cursor:pointer;}
 
   footer.note{text-align:center; color:var(--muted); font-size:11.5px; padding:20px 24px 10px;}
 
@@ -263,8 +225,6 @@
   .receta-contenido{white-space:pre-wrap; font-size:13.5px; line-height:1.7; color:var(--ink); margin-bottom:12px;}
   .receta-toolbar{display:flex; gap:8px; flex-wrap:wrap;}
   .receta-edit input[type=text]{font-weight:700; margin-bottom:8px; text-transform:uppercase;}
-  .lock-banner{background:var(--sage-light); border-radius:14px; padding:12px 14px; margin-bottom:14px; font-size:13px; color:#3d5c37; display:flex; justify-content:space-between; align-items:center; gap:8px;}
-  .lock-banner a{color:#3d5c37; font-weight:700; text-decoration:underline; white-space:nowrap;}
 
   @media(min-width:720px){
     .app-shell{padding:0 12px;}
@@ -288,9 +248,7 @@
   </div>
   <div class="app-switch-hero">
     <button onclick="setApp('appcc')"><span class="ic">🧾</span>Control APPCC</button>
-    <button onclick="setApp('horario')"><span class="ic">🕒</span>Control Horario</button>
     <button onclick="setApp('recetas')"><span class="ic">📖</span>Recetas</button>
-    <button onclick="setApp('facturas')"><span class="ic">🧾</span>Facturas</button>
   </div>
 </div>
 <div class="app-shell">
@@ -303,9 +261,7 @@
 
   <div class="app-switch" id="appSwitch">
     <button id="btn-appcc" class="active appcc" onclick="setApp('appcc')"><span class="ic">🧾</span>Control APPCC</button>
-    <button id="btn-horario" class="horario" onclick="setApp('horario')"><span class="ic">🕒</span>Control Horario</button>
     <button id="btn-recetas" class="recetas" onclick="setApp('recetas')"><span class="ic">📖</span>Recetas</button>
-    <button id="btn-facturas" class="facturas" onclick="setApp('facturas')"><span class="ic">🧾</span>Facturas</button>
   </div>
 
   <nav class="tabs" id="tabs"></nav>
@@ -334,16 +290,6 @@ function pad2(n){ return String(n).padStart(2,'0'); }
 function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
 function monthKey(y,m){ return y+'-'+pad2(m+1); }
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-function timeOptions(){
-  const arr = [''];
-  for(let h=0; h<24; h++){ for(let m=0; m<60; m+=15){ arr.push(pad2(h)+':'+pad2(m)); } }
-  return arr;
-}
-const TIME_OPTIONS = timeOptions();
-function timeSelect(value, onchange){
-  return `<select onchange="${onchange}">${TIME_OPTIONS.map(t=>`<option value="${t}" ${t===(value||'')?'selected':''}>${t===''?'-':t}</option>`).join('')}</select>`;
-}
-
 /* ================= Supabase (guardado en la nube) ================= */
 const SUPABASE_URL = 'https://ozksefsaivqwrzcbmmto.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_inkklEU7tvm-bXOOsuPPMQ_y93a90JK';
@@ -381,7 +327,7 @@ function getLocalValue(key){
   const map = {
     appcc_temps: appcc.temps, appcc_diario: appcc.diario, appcc_camaras: appcc.camaras,
     appcc_limpieza: appcc.limpieza, appcc_anual: appcc.anual, appcc_manip: appcc.manip, appcc_prov: appcc.prov,
-    horario_empleados: empleados, horario_turnos: turnos, recetas: recetas, facturas: facturas,
+    recetas: recetas,
   };
   return map[key];
 }
@@ -393,10 +339,7 @@ function applyCloudValue(key, value){
   else if(key==='appcc_anual') appcc.anual = value;
   else if(key==='appcc_manip') appcc.manip = value;
   else if(key==='appcc_prov') appcc.prov = value;
-  else if(key==='horario_empleados') empleados = value;
-  else if(key==='horario_turnos') turnos = value;
   else if(key==='recetas') recetas = value;
-  else if(key==='facturas') facturas = value;
   DB.set(key, value);
 }
 function isNonEmptyValue(v){
@@ -406,7 +349,7 @@ function isNonEmptyValue(v){
   return !!v;
 }
 async function initCloudSync(){
-  const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos','recetas','facturas'];
+  const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','recetas'];
   // Estas secciones las gestionan tareas automáticas en Supabase (cron). Ningún dispositivo
   // debe poder "sembrar" ni sobrescribir su contenido inicial nunca: solo se leen, jamás se empujan.
   const soloLectura = new Set(['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza']);
@@ -429,16 +372,13 @@ async function initCloudSync(){
   }catch(e){
     cloudStatus = 'error';
   }
-  cloudSyncDone = true;
   renderCloudBadge();
   renderAll();
 }
 
 let copiasAppcc = [];
 let currentApp = 'inicio';
-let cloudSyncDone = false;
-let isLocked = false;
-function irInicio(){ if(!isLocked) setApp('inicio'); }
+function irInicio(){ setApp('inicio'); }
 function applyShellVisibility(){
   const hero = document.getElementById('inicioHero');
   const shell = document.querySelector('.app-shell');
@@ -455,11 +395,9 @@ function setApp(app){
   applyShellVisibility();
   if(app==='inicio') return;
   document.getElementById('btn-appcc').classList.toggle('active', app==='appcc');
-  document.getElementById('btn-horario').classList.toggle('active', app==='horario');
   document.getElementById('btn-recetas').classList.toggle('active', app==='recetas');
-  document.getElementById('btn-facturas').classList.toggle('active', app==='facturas');
-  const titles = { appcc:'Control APPCC', horario:'Control Horario', recetas:'Recetas', facturas:'Facturas' };
-  const subs = { appcc:'Registro diario de higiene y seguridad alimentaria', horario:'Registro mensual de turnos del equipo', recetas:'Recetario del restaurante, siempre a mano', facturas:'Todas las facturas, organizadas y listas para imprimir' };
+  const titles = { appcc:'Control APPCC', recetas:'Recetas' };
+  const subs = { appcc:'Registro diario de higiene y seguridad alimentaria', recetas:'Recetario del restaurante, siempre a mano' };
   document.getElementById('mainTitle').textContent = titles[app];
   document.getElementById('mainSub').textContent = subs[app];
   renderAll();
@@ -1064,481 +1002,6 @@ async function enviarReceta(id){
   window.open(url, '_blank');
 }
 
-/* ================= FACTURAS state ================= */
-const FACTURAS_BUCKET = 'facturas';
-const FACTURAS_TABS = [
-  {id:'anadir',   label:'Añadir',              icon:'➕', color:'rose'},
-  {id:'empresas', label:'Por empresa',         icon:'🏢', color:'clay'},
-  {id:'meses',    label:'Por mes / Imprimir',  icon:'🖨️', color:'sky'},
-];
-let facturas = DB.get('facturas', []);
-let activeFacturasTab = 'anadir';
-let facYear = new Date().getFullYear();
-let facMonth = new Date().getMonth();
-let facEmpresaAbierta = null;
-let facBusqueda = '';
-let facSubiendo = false;
-let facImprimiendo = false;
-let facNuevaEmpresa = '';
-let facNuevaFecha = '';
-let facNuevoImporte = '';
-
-function persistFacturas(){ DB.set('facturas', facturas); sbSet('facturas', facturas); }
-
-function normaliza(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
-
-function empresasUnicas(){
-  const set = new Set();
-  facturas.forEach(f => { if(f.empresa) set.add(f.empresa); });
-  return Array.from(set).sort((a,b)=>a.localeCompare(b,'es'));
-}
-
-function iconoFactura(f){ return (f.archivoTipo||'').includes('pdf') ? '📄' : '🖼️'; }
-
-function fmtImporte(n){
-  if(n===null || n===undefined || isNaN(n)) return '';
-  return Number(n).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
-}
-
-function facturasDelMes(y,m){
-  return facturas.filter(f=>{
-    if(!f.fecha) return false;
-    const [fy,fm] = f.fecha.split('-').map(Number);
-    return fy===y && fm===(m+1);
-  }).sort((a,b)=> a.fecha.localeCompare(b.fecha));
-}
-
-async function subirFactura(input){
-  const file = input.files[0];
-  if(!file) return;
-  const empresa = (facNuevaEmpresa||'').trim();
-  const fecha = facNuevaFecha;
-  if(!empresa){ alert('Escribe primero el nombre de la empresa.'); input.value=''; return; }
-  if(!fecha){ alert('Elige primero la fecha de la factura.'); input.value=''; return; }
-  facSubiendo = true; renderAll();
-  const id = uid();
-  const path = `${id}_${Date.now()}_${encodeURIComponent(file.name)}`;
-  try{
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${FACTURAS_BUCKET}/${path}`, {
-      method:'POST',
-      headers: sbHeaders({ 'Content-Type': file.type || 'application/octet-stream' }),
-      body: file
-    });
-    if(!res.ok) throw new Error('Fallo al subir: '+res.status);
-    facturas.push({
-      id, empresa, fecha,
-      importe: facNuevoImporte!=='' ? parseFloat(facNuevoImporte) : null,
-      archivoUrl: `${SUPABASE_URL}/storage/v1/object/public/${FACTURAS_BUCKET}/${path}`,
-      archivoName: file.name, archivoTipo: file.type || '', creado: Date.now()
-    });
-    persistFacturas();
-    facNuevaEmpresa=''; facNuevaFecha=''; facNuevoImporte='';
-  }catch(e){
-    alert('No se ha podido subir la factura. Comprueba que el bucket "facturas" existe en Supabase, es público, y que has ejecutado las políticas SQL indicadas.');
-  }
-  facSubiendo = false;
-  renderAll();
-}
-
-function delFactura(id){
-  if(!confirm('¿Borrar esta factura? No se puede deshacer.')) return;
-  facturas = facturas.filter(f=>f.id!==id);
-  persistFacturas(); renderAll();
-}
-
-function cambiarFacMonth(delta){
-  facMonth += delta;
-  if(facMonth<0){ facMonth=11; facYear--; }
-  if(facMonth>11){ facMonth=0; facYear++; }
-  renderAll();
-}
-
-/* ---- Render: Añadir ---- */
-function renderFacturasAnadir(){
-  const empresasDatalist = empresasUnicas();
-  return `
-    ${sectionHead('Añadir factura','rose')}
-    <div class="card">
-      <div class="row-grid two-col-desktop" style="grid-template-columns:1fr 1fr;">
-        <div>
-          <label class="field-label">Empresa</label>
-          <input type="text" list="empresas-lista" placeholder="Nombre de la empresa" value="${(facNuevaEmpresa||'').replace(/"/g,'&quot;')}" oninput="facNuevaEmpresa=this.value">
-          <datalist id="empresas-lista">${empresasDatalist.map(e=>`<option value="${e.replace(/"/g,'&quot;')}">`).join('')}</datalist>
-        </div>
-        <div>
-          <label class="field-label">Fecha de la factura</label>
-          <input type="date" value="${facNuevaFecha||''}" onchange="facNuevaFecha=this.value">
-        </div>
-      </div>
-      <div class="row-grid" style="grid-template-columns:1fr; margin-top:4px;">
-        <div>
-          <label class="field-label">Importe (opcional)</label>
-          <input type="number" step="0.01" placeholder="0,00" value="${facNuevoImporte||''}" oninput="facNuevoImporte=this.value">
-        </div>
-      </div>
-      <div style="margin-top:12px;">
-        <label class="file-btn" style="background:var(--rose-light); color:#8A4650;">
-          ${facSubiendo ? 'Subiendo...' : '📎 Elegir archivo (PDF o foto) y guardar'}
-          <input type="file" accept="application/pdf,image/*" capture="environment" onchange="subirFactura(this)" ${facSubiendo?'disabled':''}>
-        </label>
-      </div>
-      <div style="font-size:12px; color:var(--muted); margin-top:10px;">Rellena empresa y fecha, luego elige el archivo: se sube y se guarda automáticamente.</div>
-    </div>
-  `;
-}
-
-/* ---- Render: Por empresa ---- */
-function renderFacturasEmpresas(){
-  const empresas = empresasUnicas();
-  const q = normaliza(facBusqueda);
-  const filtradas = q ? empresas.filter(e=>normaliza(e).includes(q)) : empresas;
-  return `
-    ${sectionHead('Por empresa','rose')}
-    <div class="card" style="padding:10px 12px;">
-      <input type="text" placeholder="Buscar empresa..." value="${(facBusqueda||'').replace(/"/g,'&quot;')}" oninput="facBusqueda=this.value; renderAll();">
-    </div>
-    ${filtradas.length===0 ? `<div class="empty-hint">${empresas.length===0 ? 'Todavía no has añadido ninguna factura.' : 'No hay empresas que coincidan con la búsqueda.'}</div>` : ''}
-    ${filtradas.map(emp=>{
-      const items = facturas.filter(f=>f.empresa===emp).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-      const abierta = facEmpresaAbierta===emp;
-      return `
-        <div class="fac-empresa-card">
-          <div class="fac-empresa-head" onclick="facEmpresaAbierta = ${abierta?'null':`'${emp.replace(/'/g,"\\'")}'`}; renderAll();">
-            <span class="nombre">🏢 ${emp}</span>
-            <span class="count">${items.length} factura${items.length===1?'':'s'}</span>
-            <span class="chev">${abierta?'▲':'▼'}</span>
-          </div>
-          <div class="fac-lista ${abierta?'open':''}">
-            ${items.map(f=>`
-              <div class="fac-item">
-                <span class="ic">${iconoFactura(f)}</span>
-                <div class="info">
-                  <div class="fecha">${f.fecha}</div>
-                  ${f.importe?`<div class="importe">${fmtImporte(f.importe)}</div>`:''}
-                </div>
-                <div class="acciones">
-                  <button class="fac-mini-btn" onclick="verPdf('${f.archivoUrl}','${(f.archivoName||'Factura').replace(/'/g,"\\'")}')">👁️ Ver</button>
-                  <button class="btn-del" style="width:30px;height:30px;font-size:13px;" onclick="delFactura('${f.id}')">🗑</button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }).join('')}
-  `;
-}
-
-/* ---- Render: Por mes / Imprimir ---- */
-function renderFacturasMeses(){
-  const items = facturasDelMes(facYear, facMonth);
-  return `
-    ${sectionHead('Por mes / Imprimir','rose')}
-    <div class="month-nav">
-      <button onclick="cambiarFacMonth(-1)">←</button>
-      <div class="label"><h2>${MESES[facMonth]} ${facYear}</h2></div>
-      <button onclick="cambiarFacMonth(1)">→</button>
-    </div>
-    <div class="fac-month-count">${items.length} factura${items.length===1?'':'s'} en ${MESES[facMonth].toLowerCase()}</div>
-    ${items.length>0 ? `<div style="margin-bottom:14px;"><button class="btn btn-add" onclick="imprimirFacturasMes()" ${facImprimiendo?'disabled':''}>${facImprimiendo?'Generando PDF...':'🖨️ Imprimir todas ('+items.length+')'}</button></div>` : ''}
-    ${items.length===0 ? `<div class="empty-hint">No hay facturas guardadas de este mes.</div>` : ''}
-    ${items.map(f=>`
-      <div class="card" style="display:flex; align-items:center; gap:10px;">
-        <span class="ic" style="font-size:20px;">${iconoFactura(f)}</span>
-        <div style="flex:1;">
-          <div style="font-weight:700; font-size:14px;">${f.empresa}</div>
-          <div style="font-size:12px; color:var(--muted);">${f.fecha}${f.importe?' · '+fmtImporte(f.importe):''}</div>
-        </div>
-        <button class="fac-mini-btn" onclick="verPdf('${f.archivoUrl}','${(f.archivoName||'Factura').replace(/'/g,"\\'")}')">👁️ Ver</button>
-      </div>
-    `).join('')}
-  `;
-}
-
-async function imprimirFacturasMes(){
-  const items = facturasDelMes(facYear, facMonth);
-  if(items.length===0) return;
-  facImprimiendo = true; renderAll();
-  try{
-    const { PDFDocument } = PDFLib;
-    const merged = await PDFDocument.create();
-    for(const f of items){
-      const res = await fetch(f.archivoUrl);
-      if(!res.ok) continue;
-      const bytes = await res.arrayBuffer();
-      const esPdf = (f.archivoTipo||'').includes('pdf') || (f.archivoName||'').toLowerCase().endsWith('.pdf');
-      if(esPdf){
-        const src = await PDFDocument.load(bytes, {ignoreEncryption:true});
-        const pages = await merged.copyPages(src, src.getPageIndices());
-        pages.forEach(p=>merged.addPage(p));
-      } else {
-        let img;
-        try{ img = await merged.embedJpg(bytes); }catch(e){ img = await merged.embedPng(bytes); }
-        const page = merged.addPage([img.width, img.height]);
-        page.drawImage(img, {x:0, y:0, width:img.width, height:img.height});
-      }
-    }
-    const pdfBytes = await merged.save();
-    const blob = new Blob([pdfBytes], {type:'application/pdf'});
-    const nombreArchivo = `Facturas_${MESES[facMonth]}_${facYear}.pdf`;
-
-    if(navigator.canShare){
-      try{
-        const file = new File([blob], nombreArchivo, {type:'application/pdf'});
-        if(navigator.canShare({files:[file]})){
-          await navigator.share({files:[file], title:nombreArchivo});
-          facImprimiendo = false; renderAll();
-          return;
-        }
-      }catch(e){ facImprimiendo = false; renderAll(); return; }
-    }
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-  }catch(e){
-    alert('No se ha podido generar el PDF combinado. Revisa tu conexión e inténtalo de nuevo.');
-  }
-  facImprimiendo = false; renderAll();
-}
-
-function renderFacturas(){
-  if(activeFacturasTab==='anadir') return renderFacturasAnadir();
-  if(activeFacturasTab==='empresas') return renderFacturasEmpresas();
-  return renderFacturasMeses();
-}
-
-/* ================= HORARIO state ================= */
-let empleados = DB.get('horario_empleados', [
-  {id:uid(), nombre:'Martin Uribarri'},
-  {id:uid(), nombre:'Nekane Santamaria'},
-  {id:uid(), nombre:'Aitor Martinez'},
-  {id:uid(), nombre:'Ricard Espinosa'},
-  {id:uid(), nombre:'Xabier Uribarri'},
-]);
-let turnos = DB.get('horario_turnos', {});
-let horYear = new Date().getFullYear();
-let horMonth = new Date().getMonth();
-let horExpanded = {};
-let pendingDeleteEmpId = null;
-let shareOpenFor = null;
-let nuevoEmpNombre = '';
-
-function persistEmpleados(){ DB.set('horario_empleados', empleados); sbSet('horario_empleados', empleados); }
-function persistTurnos(){ DB.set('horario_turnos', turnos); sbSet('horario_turnos', turnos); }
-
-function getMonthRows(empId, y, m){
-  const key = monthKey(y,m);
-  if(!turnos[empId]) turnos[empId] = {};
-  if(!turnos[empId][key]){
-    const n = daysInMonth(y,m);
-    turnos[empId][key] = Array.from({length:n}, (_,i)=>({id:uid(), dia:i+1, entM:'',salM:'',horasM:'',entN:'',salN:'',horasN:''}));
-    if(cloudSyncDone){ persistTurnos(); } else { DB.set('horario_turnos', turnos); }
-  }
-  return turnos[empId][key];
-}
-function rowTotal(r){ return (parseFloat(r.horasM)||0) + (parseFloat(r.horasN)||0); }
-function monthTotal(rows){ return rows.reduce((s,r)=>s+rowTotal(r),0); }
-
-function renderHorarioTable(empId){
-  const rows = getMonthRows(empId, horYear, horMonth);
-  const total = monthTotal(rows);
-  return `
-    <div class="total-card">
-      <div class="lbl">Total del mes</div>
-      <div class="num">${total.toFixed(1)}</div>
-      <div class="unit">horas trabajadas</div>
-      <button class="pdf-btn" onclick="exportPDFFor('${empId}')">📄 Exportar PDF</button>
-    </div>
-    <div class="table-wrap">
-      <table class="cal">
-        <thead><tr><th>Día</th><th>Ent.M</th><th>Sal.M</th><th>Hs.M</th><th>Ent.N</th><th>Sal.N</th><th>Hs.N</th><th>Total</th></tr></thead>
-        <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td class="dia">${r.dia}</td>
-            <td>${timeSelect(r.entM, `updCell('${empId}','${r.id}','entM',this.value)`)}</td>
-            <td>${timeSelect(r.salM, `updCell('${empId}','${r.id}','salM',this.value)`)}</td>
-            <td><input type="number" step="0.5" value="${r.horasM||''}" placeholder="0" onchange="updCell('${empId}','${r.id}','horasM',this.value)"></td>
-            <td>${timeSelect(r.entN, `updCell('${empId}','${r.id}','entN',this.value)`)}</td>
-            <td>${timeSelect(r.salN, `updCell('${empId}','${r.id}','salN',this.value)`)}</td>
-            <td><input type="number" step="0.5" value="${r.horasN||''}" placeholder="0" onchange="updCell('${empId}','${r.id}','horasN',this.value)"></td>
-            <td class="total">${rowTotal(r).toFixed(1)}</td>
-          </tr>
-        `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-function updCell(empId, rowId, field, value){
-  const rows = getMonthRows(empId, horYear, horMonth);
-  const r = rows.find(x=>x.id===rowId);
-  if(!r) return;
-  r[field] = value;
-  persistTurnos(); renderAll();
-}
-function shiftHorMonth(delta){
-  horMonth += delta;
-  if(horMonth<0){ horMonth=11; horYear--; }
-  if(horMonth>11){ horMonth=0; horYear++; }
-  renderAll();
-}
-function toggleHorEmp(id){ horExpanded[id] = !horExpanded[id]; shareOpenFor=null; renderAll(); }
-
-function buildEmpLink(id){
-  const url = new URL(window.location.href);
-  url.search = '';
-  url.searchParams.set('emp', id);
-  url.searchParams.set('modo', 'empleado');
-  return url.toString();
-}
-function toggleShare(id){ shareOpenFor = (shareOpenFor===id) ? null : id; renderAll(); }
-function copyShareLink(id){
-  const link = buildEmpLink(id);
-  const el = document.getElementById('sharelink-'+id);
-  if(el){ el.select(); el.setSelectionRange(0, 99999); }
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(link).catch(()=>{});
-  }
-  const btn = document.getElementById('copybtn-'+id);
-  if(btn){ btn.textContent = '¡Copiado!'; setTimeout(()=>{ btn.textContent='Copiar enlace'; }, 2000); }
-}
-
-function renderHorario(){
-  const params = new URLSearchParams(window.location.search);
-  const lockId = params.get('emp');
-  const isLockMode = params.get('modo')==='empleado' && lockId;
-
-  if(isLockMode){
-    const emp = empleados.find(e=>e.id===lockId);
-    if(!emp){
-      return `<div class="empty-hint">Este enlace no corresponde a ningún empleado guardado en este dispositivo.</div>`;
-    }
-    return `
-      <div class="lock-banner">
-        <span>👤 Horario de <strong>${emp.nombre}</strong></span>
-        <a href="${window.location.pathname}">Ver panel completo</a>
-      </div>
-      <div class="month-nav">
-        <button onclick="shiftHorMonth(-1)">‹ Anterior</button>
-        <div class="label"><h2>${MESES[horMonth]} ${horYear}</h2></div>
-        <button onclick="shiftHorMonth(1)">Siguiente ›</button>
-      </div>
-      ${renderHorarioTable(emp.id)}
-    `;
-  }
-
-  return `
-    <div class="card" style="background:var(--sky-light); border:none;">
-      <div style="font-size:13px; color:#2c5570;">Toca un nombre para ver y editar su calendario del mes. Los días del mes ya salen puestos.</div>
-    </div>
-    <div class="month-nav">
-      <button onclick="shiftHorMonth(-1)">‹ Anterior</button>
-      <div class="label"><h2>${MESES[horMonth]} ${horYear}</h2></div>
-      <button onclick="shiftHorMonth(1)">Siguiente ›</button>
-    </div>
-    ${empleados.length===0 ? `<div class="empty-hint">No hay empleados todavía. Añade el primero abajo.</div>` : ''}
-    ${empleados.map(e => {
-      const rows = getMonthRows(e.id, horYear, horMonth);
-      const total = monthTotal(rows);
-      let flag='flag-ok', flagText='Normal';
-      if(total===0){ flag='flag-low'; flagText='Sin horas'; }
-      else if(total<60){ flag='flag-low'; flagText='Pocas horas'; }
-      else if(total>190){ flag='flag-high'; flagText='Muchas horas'; }
-      return `
-      <div class="card">
-        <div class="admin-emp-card">
-          <div class="emp-actions" onclick="toggleHorEmp('${e.id}')">
-            <div>
-              <input type="text" class="name-input" value="${e.nombre}" onclick="event.stopPropagation()" onchange="renameEmpleado('${e.id}', this.value)">
-              <div class="hrs">${total.toFixed(1)} horas este mes</div>
-            </div>
-          </div>
-          <span class="badge-flag ${flag}">${flagText}</span>
-        </div>
-        ${horExpanded[e.id] ? `
-          ${renderHorarioTable(e.id)}
-          <div class="emp-toolbar">
-            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); toggleShare('${e.id}')">📤 Enviar a ${e.nombre.split(' ')[0]}</button>
-            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); requestDeleteEmpleado('${e.id}')">${pendingDeleteEmpId===e.id ? '⚠️ Toca para confirmar' : '🗑 Eliminar empleado'}</button>
-          </div>
-          ${shareOpenFor===e.id ? `
-            <div class="share-box">
-              <label class="field-label">Enlace personal de ${e.nombre}</label>
-              <input id="sharelink-${e.id}" type="text" readonly value="${buildEmpLink(e.id)}" onclick="this.select()">
-              <button id="copybtn-${e.id}" class="btn btn-add btn-sm" style="margin-top:8px;" onclick="copyShareLink('${e.id}')">Copiar enlace</button>
-              <div class="hint">Envíaselo por WhatsApp o donde prefieras. Cuando la web esté publicada en internet (GitHub Pages), este enlace abrirá directamente su horario en el móvil.</div>
-            </div>
-          ` : ''}
-        ` : ''}
-      </div>
-    `}).join('')}
-
-    <div class="card">
-      <label class="field-label">Añadir empleado nuevo</label>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="nuevoEmpInput" placeholder="Nombre y apellido">
-        <button class="btn btn-add" onclick="addEmpleado()">+ Añadir</button>
-      </div>
-    </div>
-  `;
-}
-function addEmpleado(){
-  const inp = document.getElementById('nuevoEmpInput');
-  const nombre = inp ? inp.value.trim() : '';
-  if(!nombre) return;
-  empleados.push({id:uid(), nombre});
-  persistEmpleados(); renderAll();
-}
-function renameEmpleado(id, nuevoNombre){
-  const e = empleados.find(x=>x.id===id);
-  if(!e || !nuevoNombre.trim()) return;
-  e.nombre = nuevoNombre.trim();
-  persistEmpleados(); renderAll();
-}
-function requestDeleteEmpleado(id){
-  if(pendingDeleteEmpId===id){
-    empleados = empleados.filter(e=>e.id!==id);
-    delete turnos[id];
-    persistEmpleados(); persistTurnos();
-    pendingDeleteEmpId = null;
-    renderAll();
-  } else {
-    pendingDeleteEmpId = id;
-    renderAll();
-    setTimeout(()=>{ if(pendingDeleteEmpId===id){ pendingDeleteEmpId=null; renderAll(); } }, 4000);
-  }
-}
-function exportPDFFor(empId){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const emp = empleados.find(e=>e.id===empId);
-  const rows = getMonthRows(empId, horYear, horMonth);
-  const total = monthTotal(rows);
-
-  doc.setFont('helvetica','bold'); doc.setFontSize(16);
-  doc.text('Restaurante Begoña — Control Horario', 14, 18);
-  doc.setFontSize(12);
-  doc.text(`${emp ? emp.nombre : ''}`, 14, 26);
-  doc.text(`${MESES[horMonth]} ${horYear}`, 14, 33);
-  doc.setFont('helvetica','normal'); doc.setFontSize(11);
-  doc.text(`Total del mes: ${total.toFixed(1)} horas`, 14, 41);
-
-  let y = 52;
-  doc.setFontSize(9); doc.setFont('helvetica','bold');
-  const headers = ['Día','Ent.M','Sal.M','Hs.M','Ent.N','Sal.N','Hs.N','Total'];
-  const colX = [14,32,50,68,84,102,120,138];
-  headers.forEach((h,i)=>doc.text(h, colX[i], y));
-  y+=6;
-  doc.setFont('helvetica','normal');
-  rows.forEach(r=>{
-    if(y>280){ doc.addPage(); y=20; }
-    const vals = [r.dia, r.entM||'-', r.salM||'-', r.horasM||'0', r.entN||'-', r.salN||'-', r.horasN||'0', rowTotal(r).toFixed(1)];
-    vals.forEach((v,i)=>doc.text(String(v), colX[i], y));
-    y+=6;
-  });
-  doc.save(`horario_${emp?emp.nombre.replace(/\s+/g,'_'):'empleado'}_${MESES[horMonth]}_${horYear}.pdf`);
-}
-
 /* ---- Informe completo APPCC en PDF (por departamentos, para inspección de Sanidad) ---- */
 // Sin parámetro: informe del mes que se está viendo. Con una copia anual: toda la temporada de marzo a octubre.
 async function exportAppccPDF(copia){
@@ -1711,13 +1174,6 @@ function renderTabs(){
       </button>
     `).join('');
     nav.querySelectorAll('button').forEach(b=>{ b.onclick = () => { activeAppccTab = b.dataset.tab; renderAll(); }; });
-  } else if(currentApp==='facturas'){
-    nav.innerHTML = FACTURAS_TABS.map(t => `
-      <button data-tab="${t.id}" class="${activeFacturasTab===t.id?'active':''}" style="${activeFacturasTab===t.id?`background:var(--${t.color});`:''}">
-        <span>${t.icon}</span><span>${t.label}</span>
-      </button>
-    `).join('');
-    nav.querySelectorAll('button').forEach(b=>{ b.onclick = () => { activeFacturasTab = b.dataset.tab; renderAll(); }; });
   } else {
     nav.innerHTML='';
   }
@@ -1729,26 +1185,10 @@ function renderAll(){
   if(currentApp==='appcc'){
     const renderers = { temps:renderTemps, diario:renderDiario, camaras:renderCamaras, limpieza:renderLimpieza, anual:renderAnual, manip:renderManip, prov:renderProv };
     main.innerHTML = renderers[activeAppccTab]();
-  } else if(currentApp==='horario'){
-    main.innerHTML = renderHorario();
   } else if(currentApp==='recetas'){
     main.innerHTML = renderRecetas();
-  } else if(currentApp==='facturas'){
-    main.innerHTML = renderFacturas();
   }
 }
-
-/* ---- Modo empleado por enlace: entra directo en Horario, sin pestañas de APPCC ---- */
-(function initLockMode(){
-  const params = new URLSearchParams(window.location.search);
-  if(params.get('modo')==='empleado' && params.get('emp')){
-    isLocked = true;
-    currentApp = 'horario';
-    document.getElementById('appSwitch').style.display = 'none';
-    document.getElementById('mainTitle').textContent = 'Control Horario';
-    document.getElementById('mainSub').textContent = 'Tu registro de turnos';
-  }
-})();
 
 applyShellVisibility();
 renderAll();
